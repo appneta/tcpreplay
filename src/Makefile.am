@@ -28,8 +28,14 @@ opts_list=-L tcpedit
 
 # man-page source (AsciiDoc, generated from the .def like *_opts.c/h - see
 # scripts/autoopts/README.md) and the rendered pages.  #895 phase 2: GNU
-# autogen's man pipeline is replaced entirely; asciidoctor is only needed to
-# (re)render the committed .adoc after a .def doc/descrip/explain/detail edit.
+# autogen's man pipeline is replaced entirely.  Like *_opts.c/h, neither the
+# .adoc nor the .1 is committed to git (see .gitignore) - both are ordinary
+# build products, generated fresh from the .def by python3/asciidoctor and
+# bundled into the dist tarball, matching this project's original convention
+# (nothing generated was ever committed; only GNU autogen - now EOL - forced
+# phase 1 to briefly deviate from it for *_opts.c/h, see git history around
+# #895 phase 1/2). man_MANS below means these still get built by plain
+# 'make', not deferred to 'install'/'dist' only.
 autoopts_dir = $(abs_top_srcdir)/scripts/autoopts
 
 tcpprep.adoc: tcpprep_opts.def

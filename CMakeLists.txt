@@ -198,11 +198,15 @@ endforeach()
 # every *_opts.c/h and the AsciiDoc man-page source (*.adoc, rendered to *.1
 # by asciidoctor); see scripts/autoopts/README.md. autogen remains required
 # only for src/tcpedit/tcpedit_stub.h, a distinct AutoOpts template mode not
-# yet ported. All of these generated files are committed to git and shipped
-# in tarballs, so the tools are only needed to regenerate them after a .def
-# edit - see tcpr_autogen_opts() in src/CMakeLists.txt for the opts.c/h/adoc
-# staleness check, and the manpages target further down in that file for
-# the asciidoctor rendering step.
+# yet ported - that one file (and its .1) is committed to git and shipped in
+# tarballs, since autogen genuinely is EOL. Everything scripts/autoopts
+# produces is NOT committed (matching this project's original convention for
+# generated files); python3 (and asciidoctor, for man pages) are needed for
+# any build from a git checkout, and 'make dist'/tarballs ship the already-
+# built output so release builds need neither tool - see tcpr_autogen_opts()
+# in src/CMakeLists.txt for the opts.c/h/adoc staleness/regeneration logic,
+# and the manpages target further down in that file for the asciidoctor
+# rendering step.
 find_program(AUTOGEN_EXECUTABLE autogen)
 set(AUTOGEN_VERSION "unknown")
 if(AUTOGEN_EXECUTABLE)
@@ -222,10 +226,11 @@ endif()
 
 find_program(PYTHON3_EXECUTABLE python3)
 if(NOT PYTHON3_EXECUTABLE AND NOT EXISTS ${CMAKE_SOURCE_DIR}/src/tcpreplay_opts.c)
-    message(FATAL_ERROR "Pre-generated option parsers are missing and python3 is not installed. "
-            "Restore src/*_opts.c (git checkout) or install python3.")
+    message(FATAL_ERROR "src/*_opts.c/h are not committed to git (#895) and python3 is not "
+            "installed to generate them. Install python3, or build from a release tarball "
+            "(make dist), which ships them pre-built.")
 elseif(NOT PYTHON3_EXECUTABLE)
-    message(STATUS "python3 not found - using the committed pre-generated option parsers/man pages")
+    message(STATUS "python3 not found - using the existing pre-generated option parsers/man pages")
 else()
     message(STATUS "Found python3: ${PYTHON3_EXECUTABLE}")
 endif()
@@ -233,11 +238,15 @@ endif()
 find_program(ASCIIDOCTOR_EXECUTABLE asciidoctor)
 if(ASCIIDOCTOR_EXECUTABLE)
     message(STATUS "Found asciidoctor: ${ASCIIDOCTOR_EXECUTABLE}")
-elseif(NOT EXISTS ${CMAKE_SOURCE_DIR}/src/tcpreplay.1)
-    message(FATAL_ERROR "Pre-generated man pages are missing and asciidoctor is not installed. "
-            "Restore src/*.1 (git checkout) or install asciidoctor.")
+elseif(EXISTS ${CMAKE_SOURCE_DIR}/src/tcpreplay.1)
+    message(STATUS "asciidoctor not found - using the existing pre-generated man pages")
 else()
-    message(STATUS "asciidoctor not found - using the committed pre-generated man pages")
+    # Unlike PYTHON3_EXECUTABLE above, this isn't fatal: 'cmake --build' never
+    # renders man pages by default (see the manpages target in
+    # src/CMakeLists.txt) - only an explicit '--target manpages' does, and
+    # that will fail with a clear "no such target" if invoked without
+    # asciidoctor installed.
+    message(STATUS "asciidoctor not found - 'cmake --build <dir> --target manpages' will be unavailable")
 endif()
 
 # ---------------------------------------------------------------------------

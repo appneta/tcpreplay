@@ -272,12 +272,17 @@ CMake Tools extension) and CLion pick these up automatically, e.g.
 Notes:
 
   - The AutoOpts-generated option parsers (*_opts.c/h) and man-page source
-    (*.adoc, plus the rendered *.1) are committed to git and shipped in
-    tarballs, so neither GNU autogen nor asciidoctor is needed to build.
-    scripts/autoopts (python3) regenerates *_opts.c/h and *.adoc after a
-    .def edit; asciidoctor renders *.adoc to *.1 (the `manpages` target
-    above). GNU autogen (EOL) is only still needed for
-    src/tcpedit/tcpedit_stub.h - see scripts/autoopts/README.md.
+    (*.adoc) are NOT committed to git - they're ordinary build products,
+    matching this project's original convention for generated files.
+    scripts/autoopts (python3) regenerates *_opts.c/h and *.adoc at
+    configure time from the .def files, so python3 is required to build
+    from a git checkout. Rendering *.adoc to *.1 is a separate, opt-in step
+    (the `manpages` target above) requiring asciidoctor - a plain
+    `cmake --build` never touches man pages at all. Release tarballs
+    (`make dist`, autotools-only) ship the already-built *_opts.c/h/*.adoc/
+    *.1, so building from a tarball needs neither tool. GNU autogen (EOL)
+    is only still needed for src/tcpedit/tcpedit_stub.h, which does stay
+    committed - see scripts/autoopts/README.md.
   - `make test' remains autotools-driven.  The CMake build generates
     test/config so the test fixtures can be used, but running the test
     suite still requires the autotools flow described above.

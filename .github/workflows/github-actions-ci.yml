@@ -44,7 +44,7 @@ jobs:
       - name: verify committed tcpedit_stub.h is current (autogen)
         if: runner.os == 'Linux'
         run: ./scripts/check-generated-opts.sh
-      - name: verify committed *_opts.c/h and man pages are current (scripts/autoopts)
+      - name: verify scripts/autoopts emitters run cleanly (*_opts.c/h, man pages)
         if: runner.os == 'Linux'
         run: |
           python3 scripts/autoopts/validate_ir.py

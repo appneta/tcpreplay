@@ -11,18 +11,26 @@ UNRELEASED
       --more-help etc.) is unchanged
     - build: replace GNU autogen as the generator for option parsers and man pages (#895, phase 2) -
       scripts/autoopts is a from-scratch python3 reimplementation of autogen's .def-to-C pipeline
-      for all 7 tools, verified byte-identical against real autogen output (scripts/autoopts/
-      check_emitters.py) including its xgettext paragraph-splitting logic (ported from libopts'
-      own optionPrintParagraphs(), the actual in-tree algorithm autogen delegates to); man pages
-      switch source format from autogen's mdoc pipeline (no in-tree source of truth, ~1900 lines of
+      for all 7 tools, verified byte-identical against real autogen output during development
+      (scripts/autoopts/check_emitters.py's development-time oracle, see scripts/autoopts/README.md)
+      including its xgettext paragraph-splitting logic (ported from libopts' own
+      optionPrintParagraphs(), the actual in-tree algorithm autogen delegates to); man pages switch
+      source format from autogen's mdoc pipeline (no in-tree source of truth, ~1900 lines of
       unvendored Scheme+Perl) to AsciiDoc generated directly from the same .def descrip/doc/explain/
       detail fields that drive --help, rendered with asciidoctor -b manpage (content-validated via
       scripts/autoopts/check_adoc.py: every option covered, zero groff warnings) rather than hand-
-      duplicated by tool as text - both build systems regenerate *_opts.c/h/.adoc only when a .def
-      is newer, and fail with clear instructions if python3/asciidoctor are missing and something's
-      stale; GNU autogen itself is now needed only for src/tcpedit/tcpedit_stub.h, a distinct
-      AutoOpts library template mode out of scope for this phase (see scripts/autoopts/README.md);
-      as before, the vendored libopts runtime is untouched
+      duplicated by tool as text; unlike phase 1, *_opts.c/h/.adoc/.1 are NOT committed to git -
+      they're ordinary build products regenerated from the .def at build time, restoring this
+      project's original convention for generated files (phase 1 had briefly committed *_opts.c/h
+      specifically because GNU autogen was becoming unobtainable; python3/asciidoctor don't have
+      that problem, so there's no need to keep deviating from the original convention for what they
+      produce - it was only causing unrelated diff noise on every .def edit, e.g. via the shared
+      tcpedit_opts.def); 'make dist'/'make dist-xz' ship the already-built output, so release
+      tarballs still need none of these tools, only a git-checkout build does; GNU autogen itself is
+      now needed only for src/tcpedit/tcpedit_stub.h, a distinct AutoOpts library template mode out
+      of scope for this phase (see scripts/autoopts/README.md) - that one file (and its .1) is the
+      sole exception that does stay committed, since autogen genuinely is EOL; as before, the
+      vendored libopts runtime is untouched
     - libtcpreplay: install the replay engine as a static C library (#133) - both build systems
       now install libtcpreplay.a, the tcpreplay_api.h header set (under include/tcpreplay/) and
       a libtcpreplay.pc pkg-config file, so applications can replay pcap files and read live

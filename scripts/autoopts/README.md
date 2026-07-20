@@ -4,6 +4,22 @@ Replacement for EOL GNU autogen: emit the libopts-compatible `*_opts.c/h`
 tables and man pages directly from the `.def` files. The vendored libopts
 runtime is untouched — this replaces only the generator.
 
+**Not committed.** `*_opts.c/h`, `*.adoc`, and `*.1` are ordinary build
+products (see `.gitignore`) — regenerated from the `.def` at build time by
+`emit_h.py`/`emit_c.py`/`emit_adoc.py`/`asciidoctor`, never checked into
+git, matching this project's original convention for generated files.
+`make dist`/`make dist-xz` ship the already-built output, so release
+tarballs need neither python3 nor asciidoctor. The "committed"/"golden
+file" language in the Status section below describes phase 2's
+*development-time* verification (the emitters were proven byte-identical
+to real GNU autogen's output while autogen was still installed and the
+generated files were briefly committed, per phase 1's now-superseded
+approach) — that equivalence is a one-time proof, documented here, not a
+per-commit CI gate; see `check_emitters.py`'s module docstring for what CI
+actually checks today. `src/tcpedit/tcpedit_stub.h` (and its `.1`) is the
+one exception that does stay committed — see the scope-boundary section
+below.
+
 ## Status
 
 - [x] Stage 1 — `defparser.py`: .def → JSON IR (heredocs, -D conditionals,
@@ -90,61 +106,33 @@ block, no NLS section, no per-program identity, a `LIBRARY_OPTION_COUNT`
 enum sentinel instead of the usual auto-option accounting. It is
 different enough to warrant its own emitter rather than a variant of
 emit_h.py, and building that was not part of the man-page decision this
-stage was scoped to. It remains on Phase 1's existing safe pattern:
-committed, regenerated only when a `.def` it depends on changes, with a
-clear failure (not silent staleness) if autogen is absent when that
-happens - so it does not block ordinary autogen-free builds. Revisit as
-future work if full autogen elimination is wanted.
-
-## Running the gates## Known scope boundary: tcpedit_stub.h stays autogen-only
-
-`src/tcpedit/tcpedit_stub.h` is generated from `tcpedit_stub.def` using a
-different AutoOpts template mode ("library" options, consumed by another
-program's descriptor table via an exported `..._optDesc_p` pointer) than
-the seven `prog-name`-bearing tools emit_h.py targets: no copyright
-block, no NLS section, no per-program identity, a `LIBRARY_OPTION_COUNT`
-enum sentinel instead of the usual auto-option accounting. It is
-different enough to warrant its own emitter rather than a variant of
-emit_h.py, and building that was not part of the man-page decision this
-stage was scoped to. It remains on Phase 1's existing safe pattern:
-committed, regenerated only when a `.def` it depends on changes, with a
-clear failure (not silent staleness) if autogen is absent when that
-happens - so it does not block ordinary autogen-free builds. Revisit as
-future work if full autogen elimination is wanted.
+stage was scoped to. Unlike everything else in this directory, it (and
+its `.1`) stays **committed**, regenerated only when a `.def` it depends
+on changes, with a clear failure (not silent staleness) if autogen is
+absent when that happens - because autogen genuinely is EOL, which is
+the reason phase 1 committed generated files in the first place. Revisit
+as future work if full autogen elimination is wanted.
 
 ## Running the gates
 
-## Known scope boundary: tcpedit_stub.h stays autogen-only
+    python3 scripts/autoopts/validate_ir.py      # structural, cross-checked against emit_h's own output
+    python3 scripts/autoopts/check_emitters.py   # smoke test: emitters run cleanly, output has the right shape
+    python3 scripts/autoopts/check_adoc.py       # content + asciidoctor/groff validity
+    ./scripts/check-generated-opts.sh            # tcpedit_stub.h vs autogen (the one file still committed)
 
-`src/tcpedit/tcpedit_stub.h` is generated from `tcpedit_stub.def` using a
-different AutoOpts template mode ("library" options, consumed by another
-program's descriptor table via an exported `..._optDesc_p` pointer) than
-the seven `prog-name`-bearing tools emit_h.py targets: no copyright
-block, no NLS section, no per-program identity, a `LIBRARY_OPTION_COUNT`
-enum sentinel instead of the usual auto-option accounting. It is
-different enough to warrant its own emitter rather than a variant of
-emit_h.py, and building that was not part of the man-page decision this
-stage was scoped to. It remains on Phase 1's existing safe pattern:
-committed, regenerated only when a `.def` it depends on changes, with a
-clear failure (not silent staleness) if autogen is absent when that
-happens - so it does not block ordinary autogen-free builds. Revisit as
-future work if full autogen elimination is wanted.
+## Method: oracle-driven equivalence (phase 2 development)
 
-## Running the gates
-
-    python3 scripts/autoopts/validate_ir.py      # structural
-    python3 scripts/autoopts/check_emitters.py   # byte-identical .h/.c
-    python3 scripts/autoopts/check_adoc.py        # content + asciidoctor/groff validity
-    ./scripts/check-generated-opts.sh            # committed vs autogen
-
-## Method: oracle-driven equivalence
-
-autogen 5.18.16 still works today. Every emitter must produce output
-byte-identical to the committed (autogen-generated) files —
-`../check-generated-opts.sh` is the comparison harness (man `.TH` dates
-normalized). Iterate diff-by-diff per tool, smallest first
-(tcpcapinfo → tcpliveplay → tcpprep → tcpreplay → tcprewrite → tcpbridge
-→ tcpreplay-edit). Do not switch the build until all seven pass.
+Historical note on how these emitters were built and validated, not a
+description of what today's CI runs (there's no committed golden file to
+diff against any more - see the "Not committed" note above). While
+building each emitter, autogen 5.18.16 was still installed and the
+generated files were briefly committed (phase 1's approach); every
+emitter was iterated, diff-by-diff per tool (smallest first: tcpcapinfo
+→ tcpliveplay → tcpprep → tcpreplay → tcprewrite → tcpbridge →
+tcpreplay-edit), until its output was byte-identical to autogen's, using
+`check-generated-opts.sh`'s predecessor as the comparison harness. That
+proof is what `check_emitters.py`'s docstring and the Status section
+below refer to as "byte-identical" / "the committed output."
 
 ## Emitter notes (learned from the committed output)
 

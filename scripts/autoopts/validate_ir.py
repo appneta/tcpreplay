@@ -1,20 +1,28 @@
 #!/usr/bin/env python3
 # Copyright (c) 2013-2026 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
 # GPLv3 - part of the Tcpreplay Suite.
-"""Validate defparser's IR against the committed autogen output (#895).
+"""Cross-check defparser's IR against emit_h's own output (#895).
 
-For every tool (including the -DTCPREPLAY_EDIT variant) this parses the
-.def sources and cross-checks against the committed *_opts.h headers:
+*_opts.c/h are not committed to git (see .gitignore) - they're ordinary
+build products, regenerated from the .def by scripts/autoopts, so there's
+no committed golden file to validate against.  Instead this independently
+re-derives, from the parsed IR, the same facts emit_h.py's Model class
+computes from its own (separate) reading of the IR, and checks they agree:
 
-  - option names and their order must match the INDEX_OPT_* enum, with
-    AutoOpts 'documentation' pseudo-flags occupying an index slot but
-    emitting no constant (the reason tcprewrite's enum starts at 1)
+  - option names and their order must match the INDEX_OPT_* enum emit_h
+    produces, with AutoOpts 'documentation' pseudo-flags occupying an
+    index slot but emitting no constant (the reason tcprewrite's enum
+    starts at 1)
   - OPTION_CT must equal doc entries + real flags + the automatic
     help/more-help (+ save-opts/load-opts unless disabled) options
 
-Run from the top of the tree.  This is the first stage of the phase 2
-oracle: emitters extend the comparison to full byte-identical output via
-scripts/check-generated-opts.sh.
+This catches divergence between defparser.py's parsing and emit_h.py's
+interpretation of it. Byte-identical-to-real-autogen equivalence was
+verified once, during phase 2 development, and remains documented in
+scripts/autoopts/README.md; it's not re-checked on every run since there's
+no committed oracle to diff against any more (see check_emitters.py).
+
+Run from the top of the tree.
 """
 
 import re
@@ -23,23 +31,24 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from defparser import parse_def_file  # noqa: E402
+from emit_h import emit_h  # noqa: E402
 
 CASES = [
-    ("tcpcapinfo", "src/tcpcapinfo_opts.def", [], "src/tcpcapinfo_opts.h"),
-    ("tcpliveplay", "src/tcpliveplay_opts.def", [], "src/tcpliveplay_opts.h"),
-    ("tcpprep", "src/tcpprep_opts.def", [], "src/tcpprep_opts.h"),
-    ("tcprewrite", "src/tcprewrite_opts.def", [], "src/tcprewrite_opts.h"),
-    ("tcpbridge", "src/tcpbridge_opts.def", [], "src/tcpbridge_opts.h"),
-    ("tcpreplay", "src/tcpreplay_opts.def", [], "src/tcpreplay_opts.h"),
-    ("tcpreplay-edit", "src/tcpreplay_opts.def", ["TCPREPLAY_EDIT"], "src/tcpreplay_edit_opts.h"),
+    ("tcpcapinfo", "src/tcpcapinfo_opts.def", [], "tcpcapinfo_opts"),
+    ("tcpliveplay", "src/tcpliveplay_opts.def", [], "tcpliveplay_opts"),
+    ("tcpprep", "src/tcpprep_opts.def", [], "tcpprep_opts"),
+    ("tcprewrite", "src/tcprewrite_opts.def", [], "tcprewrite_opts"),
+    ("tcpbridge", "src/tcpbridge_opts.def", [], "tcpbridge_opts"),
+    ("tcpreplay", "src/tcpreplay_opts.def", [], "tcpreplay_opts"),
+    ("tcpreplay-edit", "src/tcpreplay_opts.def", ["TCPREPLAY_EDIT"], "tcpreplay_edit_opts"),
 ]
 
 AUTO_OPTS = ("HELP", "MORE_HELP", "SAVE_OPTS", "LOAD_OPTS")
 
 
-def validate(name, def_path, defines, header_path):
+def validate(name, def_path, defines, base):
     ir = parse_def_file(def_path, defines=defines, search=["src", "src/tcpedit"])
-    header = Path(header_path).read_text()
+    header = emit_h(def_path, base, defines, ["src", "src/tcpedit"])
 
     doc_ct = 0
     real = []
@@ -51,18 +60,18 @@ def validate(name, def_path, defines, header_path):
             real.append(attrs["name"].upper().replace("-", "_"))
 
     enum = re.findall(r"INDEX_OPT_([A-Z0-9_]+)\s*=\s*(\d+)", header)
-    committed = [n for n, _ in enum if n not in AUTO_OPTS]
+    emitted = [n for n, _ in enum if n not in AUTO_OPTS]
     auto_ct = sum(1 for n, _ in enum if n in AUTO_OPTS)
     first_idx = int(enum[0][1]) if enum else 0
 
     errors = []
-    if real != committed:
-        for i, (p, c) in enumerate(zip(real, committed)):
+    if real != emitted:
+        for i, (p, c) in enumerate(zip(real, emitted)):
             if p != c:
-                errors.append(f"name/order divergence at {i}: parsed={p} committed={c}")
+                errors.append(f"name/order divergence at {i}: parsed={p} emitted={c}")
                 break
-        if len(real) != len(committed):
-            errors.append(f"count: parsed {len(real)} vs committed {len(committed)}")
+        if len(real) != len(emitted):
+            errors.append(f"count: parsed {len(real)} vs emitted {len(emitted)}")
     if first_idx != doc_ct:
         errors.append(f"first enum index {first_idx} != documentation entries {doc_ct}")
 

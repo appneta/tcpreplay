@@ -17,22 +17,27 @@ endif()
 # ---------------------------------------------------------------------------
 # AutoOpts code generation (*_opts.def → *_opts.c/h, *.adoc man-page source)
 # ---------------------------------------------------------------------------
-# The generated files are committed to git and shipped in tarballs (#895).
-# scripts/autoopts (python3) replaces GNU autogen for these targets - see
-# scripts/autoopts/README.md - so python3 is only needed to REGENERATE them
-# after a .def changes.  Regeneration happens here at configure time, in the
-# source tree, so the build graph never runs it (and cannot race on its
-# outputs).  autogen remains required only for src/tcpedit/tcpedit_stub.h
-# (further down in this file), a distinct AutoOpts template mode not yet
-# ported to scripts/autoopts.
+# Unlike src/tcpedit/tcpedit_stub.h, none of these generated files are
+# committed to git (see .gitignore) - they're ordinary build products,
+# matching this project's original convention (nothing generated was ever
+# committed; a release tarball ships the already-built output via 'make
+# dist'). scripts/autoopts (python3) replaces GNU autogen for these targets
+# - see scripts/autoopts/README.md - so python3 (and asciidoctor, for the
+# man pages) is needed for any build from a git checkout, exactly like
+# autogen used to be, except neither tool is EOL. Regeneration happens here
+# at configure time, in the source tree, so the build graph never runs it
+# (and cannot race on its outputs). autogen remains required only for
+# src/tcpedit/tcpedit_stub.h (further down in this file), a distinct
+# AutoOpts template mode not yet ported to scripts/autoopts - that one file
+# stays committed since autogen genuinely is EOL.
 set(TCPR_AUTOGEN_OPTS_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(AUTOOPTS_DIR ${CMAKE_SOURCE_DIR}/scripts/autoopts)
 
 # tcpr_autogen_opts(<base> <def-file> [MANBASE name] [DEFINES sym] [DEPENDS ...])
-# Defines <base>_SOURCE pointing at the committed (possibly just-regenerated)
-# .c file in the source tree.  MANBASE (the man page/adoc basename, e.g.
-# "tcpreplay-edit" for base "tcpreplay_edit_opts") defaults to <base> with
-# any trailing "_opts" stripped.
+# Defines <base>_SOURCE pointing at the (re)generated .c file in the source
+# tree.  MANBASE (the man page/adoc basename, e.g. "tcpreplay-edit" for base
+# "tcpreplay_edit_opts") defaults to <base> with any trailing "_opts"
+# stripped.
 function(tcpr_autogen_opts base def)
     cmake_parse_arguments(ARG "" "MANBASE;DEFINES" "DEPENDS" ${ARGN})
     if(ARG_MANBASE)

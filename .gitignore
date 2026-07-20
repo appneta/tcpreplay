@@ -71,6 +71,39 @@ configure
 config/
 src/config.h.in
 
+# AutoOpts-generated option parsers and man-page source/output
+# (scripts/autoopts + asciidoctor produce these from *_opts.def at build
+# time - see #895; src/tcpedit/tcpedit_stub.h and its .1 are a separate,
+# still-committed autogen-only case, not covered here)
+src/tcpreplay_opts.c
+src/tcpreplay_opts.h
+src/tcpreplay_edit_opts.c
+src/tcpreplay_edit_opts.h
+src/tcprewrite_opts.c
+src/tcprewrite_opts.h
+src/tcpprep_opts.c
+src/tcpprep_opts.h
+src/tcpbridge_opts.c
+src/tcpbridge_opts.h
+src/tcpliveplay_opts.c
+src/tcpliveplay_opts.h
+src/tcpcapinfo_opts.c
+src/tcpcapinfo_opts.h
+src/tcpreplay.adoc
+src/tcpreplay-edit.adoc
+src/tcprewrite.adoc
+src/tcpprep.adoc
+src/tcpbridge.adoc
+src/tcpliveplay.adoc
+src/tcpcapinfo.adoc
+src/tcpreplay.1
+src/tcpreplay-edit.1
+src/tcprewrite.1
+src/tcpprep.1
+src/tcpbridge.1
+src/tcpliveplay.1
+src/tcpcapinfo.1
+
 # Temporary files
 *.tmp
 .*.swp
