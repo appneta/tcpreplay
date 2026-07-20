@@ -230,6 +230,17 @@ target_compile_definitions(tcpreplay_static PRIVATE TCPREPLAY)
 tcpr_binary_common(tcpreplay_static)
 target_include_directories(tcpreplay_static PRIVATE
     ${CMAKE_SOURCE_DIR}/libopts ${CMAKE_SOURCE_DIR}/libopts/autoopts)
+if(HAVE_NETMAP)
+    # tcpreplay_api.h (via common/sendpacket.h) conditionally includes
+    # net/netmap.h, so any consumer compiling against the installed headers
+    # needs these too - PUBLIC exports them as usage requirements. The plain
+    # include_directories()/add_compile_definitions() above only cover
+    # targets under this directory (src/ and its subdirectories); they don't
+    # reach sibling directories like examples/, added separately from the
+    # top-level CMakeLists.txt.
+    target_include_directories(tcpreplay_static PUBLIC ${NETMAP_INCLUDE_DIR})
+    target_compile_definitions(tcpreplay_static PUBLIC NETMAP_WITH_LIBS)
+endif()
 
 install(TARGETS tcpreplay_static ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 install(FILES tcpreplay_api.h tcpreplay.h tcpr.h common.h
