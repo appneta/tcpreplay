@@ -124,6 +124,7 @@ types_c.vim
 .autotools
 .settings/
 pcapsend
+examples/replay_stats
 test/*1
 COPYING
 .vscode/
