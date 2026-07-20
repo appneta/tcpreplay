@@ -15,6 +15,7 @@ GNU autogen.  See README.md in this directory.
 """
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -83,7 +84,14 @@ def main(argv=None):
             elif out.exists() and out.read_text() == text:
                 print(f"current {out.relative_to(top)}")
             else:
-                out.write_text(text)
+                # Write to a temp file and rename over the target rather
+                # than writing it directly: a dist tarball extracted
+                # read-only (or any other reason the existing file isn't
+                # writable) only needs the containing directory to be
+                # writable for a rename to replace it (#895 follow-up).
+                tmp = out.with_suffix(out.suffix + ".tmp")
+                tmp.write_text(text)
+                os.replace(tmp, out)
                 print(f"wrote   {out.relative_to(top)}")
     return rc
 
