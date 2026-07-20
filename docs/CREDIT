@@ -165,3 +165,7 @@ Gabriel Ganne <GitHub @GabrielGanne>
 plusky <GitHub @plusky>
     - diagnosed and fixed the __GLIBC_MINOR typo in src/common/txring.h that had silently
       disabled Linux TX_RING support on every glibc system since the check was added (#1043)
+
+momo-trip <GitHub @momo-trip>
+    - reported an out-of-bounds read in libopts' --save-opts handling triggered by strstr()
+      running on a possibly-unmapped/non-terminated buffer (#931)

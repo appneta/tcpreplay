@@ -1,4 +1,21 @@
 UNRELEASED
+    - libopts: fix out-of-bounds read in --save-opts handling (#931, reported by @momo-trip) -
+      remove_settings() (libopts/save.c), called to strip an existing program's section out of the
+      save-opts file before rewriting it, ran strstr()/strlen() directly on the buffer returned by
+      text_mmap() without checking it for failure first. text_mmap() returns MAP_FAILED outright
+      when the file doesn't exist yet (the common case: the first time --save-opts is used) or is
+      otherwise unmappable, and even on success only NUL-terminates on a best-effort basis - its own
+      doc comment notes that when the file size lands exactly on a page boundary, it tries to map an
+      extra page after the data to hold the terminator, and silently returns without one if that
+      extra mapping fails (checkable via txt_size == txt_full_size). remove_settings() checked
+      neither condition, so a missing/unmappable save file sent strstr() scanning from a pointer
+      near -1, and (in principle, though not independently reproduced outside of induced mmap
+      failure) a page-exact save file could do the same past the end of the mapping. Fixed by
+      copying exactly txt_size bytes into a heap buffer and NUL-terminating it explicitly before any
+      scanning, so the fix no longer depends on text_mmap()'s guarantees at all, plus an explicit
+      MAP_FAILED check. Verified under AddressSanitizer: the original code crashes
+      (heap-buffer-overflow / wild pointer read) when --save-opts targets a nonexistent file; the
+      fix does not
     - common: finish fixing Linux TX_RING support after #1043 (#1044) - #1043 (thanks @plusky) fixed
       a typo in src/common/txring.h's include guard ('__GLIBC_MINOR' instead of '__GLIBC_MINOR__',
       always evaluating false, so the #else branch - missing the TX_RING API entirely - was taken
