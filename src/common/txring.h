@@ -38,9 +38,9 @@
 
 #ifdef HAVE_TX_RING
 
-#if __GLIBC__ >= 2 && __GLIBC_MINOR >= 1
+#if __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 1
 #include <net/ethernet.h> /* the L2 protocols */
-#include <netpacket/packet.h>
+#include <linux/if_packet.h>
 #else
 #include <asm/types.h>
 #include <linux/if_ether.h> /* The L2 protocols */
