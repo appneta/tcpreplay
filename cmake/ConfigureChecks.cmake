@@ -384,9 +384,14 @@ int main(void) {
     return pf_socket < 0;
 }" HAVE_PF_PACKET)
 
+# <netpacket/packet.h> and <linux/if_packet.h> cannot be included together
+# before C23 - both define struct sockaddr_ll/packet_mreq, and the
+# __UAPI_DEF_* de-duplication guards don't apply pre-C23 - so this probe
+# used to fail to even compile (never defining HAVE_TX_RING) under
+# -std=gnu11/-std=gnu17, exactly the collision src/common/txring.h had
+# (#1043/#1044). <netpacket/packet.h> supplies nothing this probe uses.
 check_c_source_compiles("
 #include <sys/socket.h>
-#include <netpacket/packet.h>
 #include <net/ethernet.h>
 #include <netinet/in.h>
 #include <linux/if_packet.h>

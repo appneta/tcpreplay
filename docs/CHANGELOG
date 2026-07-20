@@ -1,4 +1,27 @@
 UNRELEASED
+    - common: finish fixing Linux TX_RING support after #1043 (#1044) - #1043 (thanks @plusky) fixed
+      a typo in src/common/txring.h's include guard ('__GLIBC_MINOR' instead of '__GLIBC_MINOR__',
+      always evaluating false, so the #else branch - missing the TX_RING API entirely - was taken
+      unconditionally on every glibc system) and switched to <linux/if_packet.h>, the header that
+      actually defines struct tpacket_hdr/tpacket_req/TPACKET_HDRLEN. That fix alone wasn't enough:
+      both build systems' own TX_RING feature probes (configure.ac, cmake/ConfigureChecks.cmake)
+      independently included <netpacket/packet.h> alongside <linux/if_packet.h> - the two cannot be
+      included together before C23 (both define struct sockaddr_ll/packet_mreq, and the
+      __UAPI_DEF_* de-duplication guards don't apply pre-C23) - so the probe itself failed to
+      compile under -std=gnu11/-std=gnu17, meaning HAVE_TX_RING was never defined in the first
+      place on affected systems (the openSUSE/Fedora-style "older language level" case #1043 called
+      out) and txring.h's now-correct code was never reached. Dropped the redundant
+      <netpacket/packet.h> from both probes (it supplies nothing they use). That in turn surfaced a
+      third instance of the same collision, now hit for the first time ever since TX_RING had never
+      actually compiled before: src/common/sendpacket.h and sendpacket.c each unconditionally
+      include <netpacket/packet.h> for struct sockaddr_ll whenever HAVE_PF_PACKET is set (in
+      sendpacket.c, also whenever HAVE_LIBURING is set) - both commonly true alongside HAVE_TX_RING
+      on a modern Linux system - which then collided with txring.h's <linux/if_packet.h>. Made those
+      includes conditional on !HAVE_TX_RING, since txring.h already provides struct sockaddr_ll via
+      <linux/if_packet.h> in that case. Verified end-to-end (not just that it compiles): with all
+      four fixes applied, 'Linux TX_RING: yes' is correctly detected by both build systems on a
+      real glibc/gnu17 system, tcpreplay reports 'Injection method: PF_PACKET / TX_RING', and
+      packets are actually sent successfully through it
     - common: fix check_list() return type mismatch warning - declared 'int' in list.h but defined
       as 'tcpr_dir_t' (an unrelated enum) in list.c, triggering '-Wenum-int-mismatch' on newer GCC;
       the function only ever returns 0 or 1 and every caller treats the result as a plain boolean,
