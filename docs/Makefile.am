@@ -5,25 +5,25 @@ MAKEFLAGS=-s
 docs: clean-docs manpages
 
 web/tcpreplay.html:
-	mkdir -p web; @GROFF@ -Thtml -mman ../src/tcpreplay.1 > web/tcpreplay.html
+	mkdir -p web; @GROFF@ -Thtml -mman $(top_srcdir)/src/tcpreplay.1 > web/tcpreplay.html
 
 web/tcpprep.html:
-	@GROFF@ -Thtml -mman ../src/tcpprep.1 > web/tcpprep.html
+	@GROFF@ -Thtml -mman $(top_srcdir)/src/tcpprep.1 > web/tcpprep.html
 
 web/tcprewrite.html:
-	@GROFF@ -Thtml -mman ../src/tcprewrite.1 > web/tcprewrite.html
+	@GROFF@ -Thtml -mman $(top_srcdir)/src/tcprewrite.1 > web/tcprewrite.html
 
 web/tcpbridge.html:
-	@GROFF@ -Thtml -mman ../src/tcpbridge.1 > web/tcpbridge.html
+	@GROFF@ -Thtml -mman $(top_srcdir)/src/tcpbridge.1 > web/tcpbridge.html
 
 web/tcpreplay-edit.html:
-	@GROFF@ -Thtml -mman ../src/tcpreplay-edit.1 > web/tcpreplay-edit.html
+	@GROFF@ -Thtml -mman $(top_srcdir)/src/tcpreplay-edit.1 > web/tcpreplay-edit.html
 
 web/tcpliveplay.html:
-	@GROFF@ -Thtml -mman ../src/tcpliveplay.1 > web/tcpliveplay.html
+	@GROFF@ -Thtml -mman $(top_srcdir)/src/tcpliveplay.1 > web/tcpliveplay.html
 
 web/tcpcapinfo.html:
-	@GROFF@ -Thtml -mman ../src/tcpcapinfo.1 > web/tcpcapinfo.html
+	@GROFF@ -Thtml -mman $(top_srcdir)/src/tcpcapinfo.1 > web/tcpcapinfo.html
 
 manpages: web/tcpreplay.html web/tcpprep.html web/tcprewrite.html \
     web/tcpbridge.html web/tcpreplay-edit.html web/tcpliveplay.html \
