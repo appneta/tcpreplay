@@ -28,63 +28,73 @@ opts_list=-L tcpedit
 
 # man-page source (AsciiDoc, generated from the .def like *_opts.c/h - see
 # scripts/autoopts/README.md) and the rendered pages.  #895 phase 2: GNU
-# autogen's man pipeline is replaced entirely.  Like *_opts.c/h, neither the
-# .adoc nor the .1 is committed to git (see .gitignore) - both are ordinary
-# build products, generated fresh from the .def by python3/asciidoctor and
-# bundled into the dist tarball, matching this project's original convention
-# (nothing generated was ever committed; only GNU autogen - now EOL - forced
-# phase 1 to briefly deviate from it for *_opts.c/h, see git history around
-# #895 phase 1/2). man_MANS below means these still get built by plain
-# 'make', not deferred to 'install'/'dist' only.
+# autogen's man pipeline is replaced entirely.  Like *_opts.c/h, neither is
+# committed to git (see .gitignore) - both are ordinary build products,
+# generated fresh from the .def by python3/asciidoctor, matching this
+# project's original convention (nothing generated was ever committed; only
+# GNU autogen - now EOL - forced phase 1 to briefly deviate from it for
+# *_opts.c/h, see git history around #895 phase 1/2). man_MANS below means
+# these still get built by plain 'make', not deferred to 'install'/'dist'
+# only.
+#
+# Only the rendered .1 is bundled into the dist tarball (EXTRA_DIST below),
+# matching the pre-#895 behavior where autogen rendered man pages directly
+# with no separate source format to ship - the .adoc intermediate is a
+# git-checkout-only build artifact.  Each .1 rule therefore depends on the
+# .def directly (like *_opts.c/h), not on its .adoc, and regenerates .adoc
+# as an internal step of its own recipe: if a shipped .1 is already newer
+# than the .def it was built from - always true for a fresh dist tarball,
+# since .adoc isn't there to depend on - neither python3 nor asciidoctor is
+# needed to build it.  A prerequisite that's simply missing (as .adoc
+# always would be in a tarball) forces make to build it regardless of the
+# dependent target's own freshness, which is what this sidesteps.
 autoopts_dir = $(abs_top_srcdir)/scripts/autoopts
 
 tcpprep.adoc: tcpprep_opts.def
 	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcpprep tcpprep_opts.def > tcpprep.adoc.tmp && mv -f tcpprep.adoc.tmp tcpprep.adoc
 
-tcpprep.1: tcpprep.adoc
-	cd $(srcdir) && @ASCIIDOCTOR@ -b manpage -o tcpprep.1.tmp tcpprep.adoc && mv -f tcpprep.1.tmp tcpprep.1
+tcpprep.1: tcpprep_opts.def
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcpprep tcpprep_opts.def > tcpprep.adoc.tmp && mv -f tcpprep.adoc.tmp tcpprep.adoc && @ASCIIDOCTOR@ -b manpage -o tcpprep.1.tmp tcpprep.adoc && mv -f tcpprep.1.tmp tcpprep.1
 
 tcprewrite.adoc: tcprewrite_opts.def tcpedit/tcpedit_opts.def
 	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcprewrite tcprewrite_opts.def > tcprewrite.adoc.tmp && mv -f tcprewrite.adoc.tmp tcprewrite.adoc
 
-tcprewrite.1: tcprewrite.adoc
-	cd $(srcdir) && @ASCIIDOCTOR@ -b manpage -o tcprewrite.1.tmp tcprewrite.adoc && mv -f tcprewrite.1.tmp tcprewrite.1
+tcprewrite.1: tcprewrite_opts.def tcpedit/tcpedit_opts.def
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcprewrite tcprewrite_opts.def > tcprewrite.adoc.tmp && mv -f tcprewrite.adoc.tmp tcprewrite.adoc && @ASCIIDOCTOR@ -b manpage -o tcprewrite.1.tmp tcprewrite.adoc && mv -f tcprewrite.1.tmp tcprewrite.1
 
 tcpreplay-edit.adoc: tcpreplay_opts.def
 	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcpreplay-edit tcpreplay_opts.def TCPREPLAY_EDIT > tcpreplay-edit.adoc.tmp && mv -f tcpreplay-edit.adoc.tmp tcpreplay-edit.adoc
 
-tcpreplay-edit.1: tcpreplay-edit.adoc
-	cd $(srcdir) && @ASCIIDOCTOR@ -b manpage -o tcpreplay-edit.1.tmp tcpreplay-edit.adoc && mv -f tcpreplay-edit.1.tmp tcpreplay-edit.1
+tcpreplay-edit.1: tcpreplay_opts.def
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcpreplay-edit tcpreplay_opts.def TCPREPLAY_EDIT > tcpreplay-edit.adoc.tmp && mv -f tcpreplay-edit.adoc.tmp tcpreplay-edit.adoc && @ASCIIDOCTOR@ -b manpage -o tcpreplay-edit.1.tmp tcpreplay-edit.adoc && mv -f tcpreplay-edit.1.tmp tcpreplay-edit.1
 
 tcpreplay.adoc: tcpreplay_opts.def
 	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcpreplay tcpreplay_opts.def > tcpreplay.adoc.tmp && mv -f tcpreplay.adoc.tmp tcpreplay.adoc
 
-tcpreplay.1: tcpreplay.adoc
-	cd $(srcdir) && @ASCIIDOCTOR@ -b manpage -o tcpreplay.1.tmp tcpreplay.adoc && mv -f tcpreplay.1.tmp tcpreplay.1
+tcpreplay.1: tcpreplay_opts.def
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcpreplay tcpreplay_opts.def > tcpreplay.adoc.tmp && mv -f tcpreplay.adoc.tmp tcpreplay.adoc && @ASCIIDOCTOR@ -b manpage -o tcpreplay.1.tmp tcpreplay.adoc && mv -f tcpreplay.1.tmp tcpreplay.1
 
 tcpbridge.adoc: tcpbridge_opts.def tcpedit/tcpedit_opts.def
 	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcpbridge tcpbridge_opts.def > tcpbridge.adoc.tmp && mv -f tcpbridge.adoc.tmp tcpbridge.adoc
 
-tcpbridge.1: tcpbridge.adoc
-	cd $(srcdir) && @ASCIIDOCTOR@ -b manpage -o tcpbridge.1.tmp tcpbridge.adoc && mv -f tcpbridge.1.tmp tcpbridge.1
+tcpbridge.1: tcpbridge_opts.def tcpedit/tcpedit_opts.def
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcpbridge tcpbridge_opts.def > tcpbridge.adoc.tmp && mv -f tcpbridge.adoc.tmp tcpbridge.adoc && @ASCIIDOCTOR@ -b manpage -o tcpbridge.1.tmp tcpbridge.adoc && mv -f tcpbridge.1.tmp tcpbridge.1
 
 tcpliveplay.adoc: tcpliveplay_opts.def
 	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcpliveplay tcpliveplay_opts.def > tcpliveplay.adoc.tmp && mv -f tcpliveplay.adoc.tmp tcpliveplay.adoc
 
-tcpliveplay.1: tcpliveplay.adoc
-	cd $(srcdir) && @ASCIIDOCTOR@ -b manpage -o tcpliveplay.1.tmp tcpliveplay.adoc && mv -f tcpliveplay.1.tmp tcpliveplay.1
+tcpliveplay.1: tcpliveplay_opts.def
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcpliveplay tcpliveplay_opts.def > tcpliveplay.adoc.tmp && mv -f tcpliveplay.adoc.tmp tcpliveplay.adoc && @ASCIIDOCTOR@ -b manpage -o tcpliveplay.1.tmp tcpliveplay.adoc && mv -f tcpliveplay.1.tmp tcpliveplay.1
 
 tcpcapinfo.adoc: tcpcapinfo_opts.def
 	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcpcapinfo tcpcapinfo_opts.def > tcpcapinfo.adoc.tmp && mv -f tcpcapinfo.adoc.tmp tcpcapinfo.adoc
 
-tcpcapinfo.1: tcpcapinfo.adoc
-	cd $(srcdir) && @ASCIIDOCTOR@ -b manpage -o tcpcapinfo.1.tmp tcpcapinfo.adoc && mv -f tcpcapinfo.1.tmp tcpcapinfo.1
+tcpcapinfo.1: tcpcapinfo_opts.def
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcpcapinfo tcpcapinfo_opts.def > tcpcapinfo.adoc.tmp && mv -f tcpcapinfo.adoc.tmp tcpcapinfo.adoc && @ASCIIDOCTOR@ -b manpage -o tcpcapinfo.1.tmp tcpcapinfo.adoc && mv -f tcpcapinfo.1.tmp tcpcapinfo.1
 
 man_MANS = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpreplay-edit.1 tcpcapinfo.1
 EXTRA_DIST = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpbridge.1 tcpreplay-edit.1 \
-	tcpliveplay.1 tcpcapinfo.1 \
-	tcpreplay.adoc tcpprep.adoc tcprewrite.adoc tcpbridge.adoc \
-	tcpreplay-edit.adoc tcpliveplay.adoc tcpcapinfo.adoc
+	tcpliveplay.1 tcpcapinfo.1
 bin_PROGRAMS = tcpreplay tcpprep tcprewrite tcpreplay-edit tcpcapinfo
 
 if COMPILE_TCPBRIDGE

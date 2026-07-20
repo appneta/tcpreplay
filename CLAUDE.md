@@ -52,8 +52,12 @@ are **not** committed to git — matching this project's original convention for
 (#895 — GNU autogen is EOL, but its python3/asciidoctor replacements aren't, so there's no need to
 deviate from that convention the way phase 1 briefly did). `scripts/autoopts` (python3) regenerates
 `*_opts.c/h`/`*.adoc` and `asciidoctor` renders `*.adoc` to `*.1`, both at build time from the
-source tree; `make dist`/`make dist-xz` ship the already-built output, so release tarballs need
-neither tool. GNU autogen itself is only still needed for one file, `src/tcpedit/tcpedit_stub.h`
+source tree. `make dist`/`make dist-xz` ship only the rendered `*_opts.c/h`/`*.1` (matching the
+pre-#895 behavior of shipping pre-built man pages, not autogen's separate mdoc source) — `*.adoc`
+is a git-checkout-only build artifact, never distributed — so release tarballs need neither python3
+nor asciidoctor, only a git checkout does. Each `*.1` rule depends on its `.def` directly, like
+`*_opts.c/h`, not on `*.adoc` — so a shipped, already-fresh `.1` doesn't force `.adoc` to exist.
+GNU autogen itself is only still needed for one file, `src/tcpedit/tcpedit_stub.h`
 (a distinct AutoOpts template mode — see `scripts/autoopts/README.md`) — that one file (and its
 `.1`) does stay committed, since autogen genuinely is EOL. On Debian/Ubuntu:
 `apt install libpcap-dev automake autoconf libtool python3 asciidoctor` (add `autogen` if editing

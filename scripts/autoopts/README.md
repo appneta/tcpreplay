@@ -8,8 +8,13 @@ runtime is untouched — this replaces only the generator.
 products (see `.gitignore`) — regenerated from the `.def` at build time by
 `emit_h.py`/`emit_c.py`/`emit_adoc.py`/`asciidoctor`, never checked into
 git, matching this project's original convention for generated files.
-`make dist`/`make dist-xz` ship the already-built output, so release
-tarballs need neither python3 nor asciidoctor. The "committed"/"golden
+`make dist`/`make dist-xz` ship only the rendered `*_opts.c/h`/`*.1`
+(matching the pre-#895 behavior of shipping pre-built man pages, not
+autogen's separate mdoc source) — `*.adoc` is a git-checkout-only build
+artifact, never distributed — so release tarballs need neither python3 nor
+asciidoctor. Each `*.1` rule in `src/Makefile.am` depends on its `.def`
+directly, not on `*.adoc`, so a shipped `.1` that's already newer than its
+`.def` doesn't force the (absent) `.adoc` to be created first. The "committed"/"golden
 file" language in the Status section below describes phase 2's
 *development-time* verification (the emitters were proven byte-identical
 to real GNU autogen's output while autogen was still installed and the

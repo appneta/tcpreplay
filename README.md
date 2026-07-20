@@ -109,9 +109,12 @@ Python replacement) and `asciidoctor` produce them from the `.def` files at
 build time instead, so you need those two tools installed to build from git
 (neither is EOL, unlike autogen). GNU autogen itself is only still needed
 for one internal header (`src/tcpedit/tcpedit_stub.h`); see
-`scripts/autoopts/README.md`. Release tarballs (`make dist`) ship the
-already-generated files, so building from a tarball needs none of these
-three tools.
+`scripts/autoopts/README.md`. Release tarballs (`make dist`, autotools
+only) ship the already-generated option parsers and pre-built man pages
+(`*_opts.c/h`/`*.1`) — matching the pre-#895 behavior of shipping pre-built
+man pages, not a separate source format — so building from a tarball needs
+none of these three tools; the AsciiDoc man-page source (`*.adoc`) is a
+git-checkout-only build artifact and isn't distributed.
 
 ```
 cmake -B build
