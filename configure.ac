@@ -254,25 +254,28 @@ AC_DEFINE([AUTOGEN_VERSION], [${AUTOGEN_VERSION}], [What version of autogen is i
 dnl #895 phase 2: python3 (scripts/autoopts) replaces autogen for generating
 dnl src/*_opts.c/h and the AsciiDoc man-page source (src/*.adoc); autogen is
 dnl only still required for src/tcpedit/tcpedit_stub.h (a different AutoOpts
-dnl template mode not yet ported - see scripts/autoopts/README.md).  As with
-dnl autogen, the generated files are committed, so python3 is only needed to
-dnl regenerate them after a .def edit.
+dnl template mode not yet ported - see scripts/autoopts/README.md).  Unlike
+dnl tcpedit_stub.h, none of these are committed to git (see .gitignore) -
+dnl they're ordinary build products, so python3 is required for any build
+dnl from a git checkout; release tarballs (make dist) ship the already-
+dnl built output, so building from a tarball needs neither python3 nor
+dnl asciidoctor below.
 if test -z "${PYTHON3}" ; then
     if test ! -f ${srcdir}/src/tcpreplay_opts.c ; then
-        AC_MSG_ERROR([Pre-generated option parsers are missing and python3 is not installed. Restore src/*_opts.c (git checkout) or install python3])
+        AC_MSG_ERROR([src/*_opts.c/h are not committed to git (issue 895) and python3 is not installed to generate them. Install python3, or build from a release tarball (make dist), which ships them pre-built])
     fi
-    AC_MSG_NOTICE([python3 not found - using the committed pre-generated option parsers and man pages])
+    AC_MSG_NOTICE([python3 not found - using the existing pre-generated option parsers and man pages])
     PYTHON3='$(SHELL) $(abs_top_srcdir)/scripts/missing-python3'
 fi
 
-dnl asciidoctor renders src/*.adoc (see above) to the committed src/*.1 man
-dnl pages; only needed to re-render after a .def doc/descrip/explain/detail
-dnl edit changes the generated .adoc.
+dnl asciidoctor renders src/*.adoc (see above) to src/*.1 man pages; like
+dnl *_opts.c/h, neither is committed, so asciidoctor is required for any
+dnl build from a git checkout.
 if test -z "${ASCIIDOCTOR}" ; then
     if test ! -f ${srcdir}/src/tcpreplay.1 ; then
-        AC_MSG_ERROR([Pre-generated man pages are missing and asciidoctor is not installed. Restore src/*.1 (git checkout) or install asciidoctor])
+        AC_MSG_ERROR([src/*.1 man pages are not committed to git (issue 895) and asciidoctor is not installed to generate them. Install asciidoctor, or build from a release tarball (make dist), which ships them pre-built])
     fi
-    AC_MSG_NOTICE([asciidoctor not found - using the committed pre-generated man pages])
+    AC_MSG_NOTICE([asciidoctor not found - using the existing pre-generated man pages])
     ASCIIDOCTOR='$(SHELL) $(abs_top_srcdir)/scripts/missing-asciidoctor'
 fi
 

@@ -1,16 +1,17 @@
 #!/bin/sh
 # Stand-in for asciidoctor when it is not installed (#895 phase 2).
 #
-# src/*.1 man pages are rendered from the committed src/*.adoc (AsciiDoc)
-# source with `asciidoctor -b manpage`. The rendered pages are committed to
-# git and shipped in release tarballs, so asciidoctor is only needed to
-# re-render them after a .def doc/descrip/explain/detail edit changes the
-# generated .adoc. If this script runs, a .adoc file is newer than its
-# committed .1 page and re-rendering was attempted without asciidoctor
-# installed.
+# src/*.1 man pages are rendered from src/*.adoc (AsciiDoc) source with
+# `asciidoctor -b manpage`. Neither is committed to git - they're ordinary
+# build products, regenerated from the .def files at build time - so
+# asciidoctor is required for any build from a git checkout. Release
+# tarballs (make dist/dist-xz) ship the already-rendered *.1, so building
+# from a tarball needs neither python3 nor asciidoctor. If this script
+# runs, a .1 page is missing or older than its .adoc and asciidoctor was
+# needed to (re)render it but is not installed.
 
 echo "ERROR: asciidoctor is required to render src/*.adoc to man pages, but is not installed." >&2
-echo "       A .adoc file is newer than its committed .1 page." >&2
-echo "       Either install asciidoctor, or if the .adoc content is unchanged," >&2
-echo "       refresh the timestamps: touch src/*.1" >&2
+echo "       A .1 page is missing or older than its .adoc source." >&2
+echo "       Either install asciidoctor, or build from a release tarball (make dist)," >&2
+echo "       which ships the already-rendered *.1 pages." >&2
 exit 1
