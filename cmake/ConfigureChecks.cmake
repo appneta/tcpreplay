@@ -395,7 +395,16 @@ int main(void) { int test = TP_STATUS_WRONG_FORMAT; return test; }
 
 check_library_exists(bpf bpf_object__open_file "" HAVE_LIBBPF_LIB)
 check_library_exists(xdp xsk_umem__delete "" HAVE_LIBXDP_LIB)
-check_c_source_compiles("
+if(HAVE_LIBXDP_LIB)
+    # check_c_source_compiles() links a full test executable despite its
+    # name, so xsk_socket__create() below needs -lxdp on the link line via
+    # CMAKE_REQUIRED_LIBRARIES, or the check fails with "undefined
+    # reference" even though the header and call are both fine - it was
+    # never being set here, so this check always failed even with libxdp
+    # genuinely installed (matches the pattern already used correctly for
+    # liburing just below).
+    set(CMAKE_REQUIRED_LIBRARIES xdp)
+    check_c_source_compiles("
 #include <stdlib.h>
 #include <xdp/xsk.h>
 #include <sys/socket.h>
@@ -406,6 +415,8 @@ int main(void) {
     xsk_socket__create(&xsk, \"lo\", 0, NULL, rxr, txr, NULL);
     return socket(AF_XDP, SOCK_RAW, 0) < 0;
 }" HAVE_LIBXDP_COMPILES)
+    unset(CMAKE_REQUIRED_LIBRARIES)
+endif()
 if(HAVE_LIBXDP_COMPILES AND HAVE_LIBXDP_LIB)
     set(HAVE_LIBXDP 1)
 endif()

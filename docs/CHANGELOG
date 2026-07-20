@@ -1,4 +1,19 @@
 UNRELEASED
+    - cmake: fix the configuration summary and a LIBXDP false negative (#1039) - CMake's
+      "TCPREPLAY Suite Configuration Results" banner interpolated raw CMake variables (empty on a
+      failed check, "1" on success) directly into the summary instead of normalizing them, so most
+      boolean feature lines (Linux TX_RING, BSD BPF, pcap_netmap, LIBXDP, ...) printed blank instead
+      of "no" like autotools' equivalent summary, and successes printed "1" instead of "yes"; a new
+      tcpr_yn() helper normalizes every such field for display only, without touching the
+      HAVE_xxx/ENABLE_xxx variables everything else in the build still uses. Separately, LIBXDP
+      detection itself was a genuine false negative, not just a display issue: the
+      HAVE_LIBXDP_COMPILES check_c_source_compiles() test calls xsk_socket__create() but never set
+      CMAKE_REQUIRED_LIBRARIES to link against -lxdp first (unlike the equivalent, correct liburing
+      check right below it) - check_c_source_compiles() actually builds and links a full test
+      executable despite its name, so the check failed with "undefined reference to
+      `xsk_socket__create'" even with libxdp-dev/libbpf-dev genuinely installed and autotools
+      correctly detecting it, silently disabling --xdp support in CMake builds that should have had
+      it; verified with libxdp-dev/libbpf-dev actually installed, matching autotools exactly
     - build: make dist tarballs are now buildable with CMake, not just autotools (#1037) - every
       CMakeLists.txt, CMakePresets.json, and cmake/*.cmake support module is now added to the
       relevant EXTRA_DIST variables, so 'make dist'/'make dist-xz' tarballs ship both build

@@ -433,34 +433,60 @@ add_subdirectory(examples)
 # ---------------------------------------------------------------------------
 # Configuration summary (mirrors the configure.ac results banner)
 # ---------------------------------------------------------------------------
+# configure.ac's shell have_xxx/enable_xxx variables are always explicitly
+# "yes" or "no" (initialized to "no", flipped on success). CMake's
+# check_c_source_compiles()/check_library_exists() results, and plain
+# ON/OFF-style variables, don't share that convention - a failed check
+# leaves its result variable empty (not "no"), and a successful one holds
+# "1"/TRUE (not "yes"), so interpolating them directly into message()
+# printed either blank lines (read as "not reported") or "1" instead of
+# "yes" for nearly every feature in this summary. tcpr_yn() normalizes any
+# CMake truthy/falsy value to the same "yes"/"no" text autotools prints,
+# for display only - it doesn't touch the underlying HAVE_xxx/ENABLE_xxx
+# variables, which every #cmakedefine/if() elsewhere keeps using as-is.
+function(tcpr_yn var out)
+    if(${var})
+        set(${out} "yes" PARENT_SCOPE)
+    else()
+        set(${out} "no" PARENT_SCOPE)
+    endif()
+endfunction()
+
+foreach(_v PF_RING_FOUND ENABLE_64BITS ENABLE_FRAGROUTE ENABLE_TCPBRIDGE ENABLE_TCPLIVEPLAY
+            HAVE_TX_RING HAVE_PF_PACKET HAVE_BPF HAVE_LIBDNET HAVE_PCAP_INJECT
+            HAVE_PCAP_SENDPACKET HAVE_LIBPCAP_NETMAP HAVE_NETMAP HAVE_TUNTAP HAVE_LIBXDP
+            HAVE_LIBURING)
+    tcpr_yn(${_v} _yn_${_v})
+endforeach()
+
 message(STATUS "")
 message(STATUS "##########################################################################")
 message(STATUS "             TCPREPLAY Suite Configuration Results (${TCPREPLAY_VERSION})")
 message(STATUS "##########################################################################")
 message(STATUS "libpcap:                    ${PCAP_INCLUDE_FILE} (${LIBPCAP_VERSION})")
-message(STATUS "PF_RING libpcap:            ${PF_RING_FOUND} ${WITH_PFRING_LIB}")
-message(STATUS "libdnet:                    ${HAVE_LIBDNET} ${LIBDNET_VERSION_STR}")
+message(STATUS "PF_RING libpcap:            ${_yn_PF_RING_FOUND} ${WITH_PFRING_LIB}")
+message(STATUS "libdnet:                    ${_yn_HAVE_LIBDNET} ${LIBDNET_VERSION_STR}")
 message(STATUS "autogen:                    ${AUTOGEN_EXECUTABLE} (${AUTOGEN_VERSION})")
 message(STATUS "python3 (scripts/autoopts): ${PYTHON3_EXECUTABLE}")
 message(STATUS "asciidoctor (man pages):    ${ASCIIDOCTOR_EXECUTABLE}")
-message(STATUS "64bit counter support:      ${ENABLE_64BITS}")
+message(STATUS "64bit counter support:      ${_yn_ENABLE_64BITS}")
 message(STATUS "tcpdump binary path:        ${TCPDUMP_PATH}")
-message(STATUS "fragroute support:          ${ENABLE_FRAGROUTE}")
-message(STATUS "tcpbridge support:          ${ENABLE_TCPBRIDGE}")
-message(STATUS "tcpliveplay support:        ${ENABLE_TCPLIVEPLAY}")
+message(STATUS "fragroute support:          ${_yn_ENABLE_FRAGROUTE}")
+message(STATUS "tcpbridge support:          ${_yn_ENABLE_TCPBRIDGE}")
+message(STATUS "tcpliveplay support:        ${_yn_ENABLE_TCPLIVEPLAY}")
 message(STATUS "")
 message(STATUS "Supported Packet Injection Methods (*):")
-message(STATUS "Linux TX_RING:              ${HAVE_TX_RING}")
-message(STATUS "Linux PF_PACKET:            ${HAVE_PF_PACKET}")
-message(STATUS "BSD BPF:                    ${HAVE_BPF}")
-message(STATUS "libdnet:                    ${HAVE_LIBDNET}")
-message(STATUS "pcap_inject:                ${HAVE_PCAP_INJECT}")
-message(STATUS "pcap_sendpacket:            ${HAVE_PCAP_SENDPACKET} **")
-message(STATUS "pcap_netmap:                ${HAVE_LIBPCAP_NETMAP}")
-message(STATUS "Linux/BSD netmap:           ${HAVE_NETMAP} ${NETMAP_INCLUDE_DIR}")
-message(STATUS "Tuntap device support:      ${HAVE_TUNTAP}")
-message(STATUS "LIBXDP for AF_XDP socket:   ${HAVE_LIBXDP}")
-message(STATUS "liburing for io_uring:      ${HAVE_LIBURING}")
+message(STATUS "Linux TX_RING:              ${_yn_HAVE_TX_RING}")
+message(STATUS "Linux PF_PACKET:            ${_yn_HAVE_PF_PACKET}")
+message(STATUS "BSD BPF:                    ${_yn_HAVE_BPF}")
+message(STATUS "libdnet:                    ${_yn_HAVE_LIBDNET}")
+message(STATUS "pcap_inject:                ${_yn_HAVE_PCAP_INJECT}")
+message(STATUS "pcap_sendpacket:            ${_yn_HAVE_PCAP_SENDPACKET} **")
+message(STATUS "pcap_netmap:                ${_yn_HAVE_LIBPCAP_NETMAP}")
+message(STATUS "Linux/BSD netmap:           ${_yn_HAVE_NETMAP} ${NETMAP_INCLUDE_DIR}")
+message(STATUS "Tuntap device support:      ${_yn_HAVE_TUNTAP}")
+message(STATUS "LIBXDP for AF_XDP socket:   ${_yn_HAVE_LIBXDP}")
+message(STATUS "liburing for io_uring:      ${_yn_HAVE_LIBURING}")
 message(STATUS "")
 message(STATUS "* In order of preference; see options in CMakeLists.txt to override")
 message(STATUS "** Required for tcpbridge")
