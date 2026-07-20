@@ -171,7 +171,16 @@
 #include <net/if.h>
 #include <net/if_arp.h>
 #include <netinet/in.h>
+/* <netpacket/packet.h> and <linux/if_packet.h> (pulled in below by
+ * txring.h when HAVE_TX_RING) cannot be included together before C23 -
+ * both define struct sockaddr_ll/packet_mreq, and the __UAPI_DEF_*
+ * de-duplication guards don't apply pre-C23 (#1043/#1044). When both
+ * PF_PACKET and TX_RING support are available - the common case on a
+ * modern Linux system - let txring.h's <linux/if_packet.h> be the sole
+ * source of struct sockaddr_ll for this translation unit instead. */
+#ifndef HAVE_TX_RING
 #include <netpacket/packet.h>
+#endif
 #include <sys/utsname.h>
 
 #ifdef HAVE_TX_RING
@@ -255,7 +264,11 @@ static struct tcpr_ether_addr *sendpacket_get_hwaddr_libxdp(sendpacket_t *);
 #ifdef HAVE_LIBURING
 #include <net/if_arp.h>
 #include <netinet/in.h>
+/* see the HAVE_PF_PACKET block above - same pre-C23 header collision
+ * with txring.h's <linux/if_packet.h> when HAVE_TX_RING is also set. */
+#ifndef HAVE_TX_RING
 #include <netpacket/packet.h>
+#endif
 static sendpacket_t *sendpacket_open_io_uring(const char *, char *) _U_;
 static struct tcpr_ether_addr *sendpacket_get_hwaddr_io_uring(sendpacket_t *) _U_;
 static void sendpacket_uring_process_cqe(sendpacket_t *, struct io_uring_cqe *);

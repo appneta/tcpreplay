@@ -36,7 +36,14 @@
 #include <net/netmap.h>
 #endif
 
-#ifdef HAVE_PF_PACKET
+/* <netpacket/packet.h> and <linux/if_packet.h> (pulled in below by
+ * txring.h when HAVE_TX_RING) cannot be included together before C23 -
+ * both define struct sockaddr_ll/packet_mreq, and the __UAPI_DEF_*
+ * de-duplication guards don't apply pre-C23 (#1043/#1044). When both
+ * PF_PACKET and TX_RING support are available - the common case on a
+ * modern Linux system - let txring.h's <linux/if_packet.h> be the sole
+ * source of struct sockaddr_ll for this translation unit instead. */
+#if defined HAVE_PF_PACKET && !defined HAVE_TX_RING
 #include <netpacket/packet.h>
 #endif
 

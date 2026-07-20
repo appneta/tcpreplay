@@ -1583,10 +1583,15 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 
 have_tx_ring=no
 dnl Check for older Linux TX_RING support
+dnl <netpacket/packet.h> and <linux/if_packet.h> cannot be included
+dnl together before C23 - both define struct sockaddr_ll/packet_mreq, and
+dnl the __UAPI_DEF_* de-duplication guards don't apply pre-C23 - so this
+dnl probe used to fail to even compile (never defining HAVE_TX_RING) under
+dnl -std=gnu11/-std=gnu17, exactly the collision src/common/txring.h had
+dnl (#1043/#1044). <netpacket/packet.h> supplies nothing this probe uses.
 AC_MSG_CHECKING(for TX_RING socket sending support)
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <sys/socket.h>
-#include <netpacket/packet.h>
 #include <net/ethernet.h>     /* the L2 protocols */
 #include <netinet/in.h>       /* htons */
 #include <linux/if_packet.h>
