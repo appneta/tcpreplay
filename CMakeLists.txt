@@ -418,6 +418,19 @@ set(srcdir ${CMAKE_SOURCE_DIR}/test)
 configure_file(${CMAKE_SOURCE_DIR}/test/config.in
                ${CMAKE_BINARY_DIR}/test/config @ONLY)
 
+# The line above creates a real ${CMAKE_BINARY_DIR}/test directory. Without a
+# target explicitly named "test", `cmake --build . --target test` would find
+# that directory sitting there with no build rule and nothing out of date,
+# and treat the goal as trivially satisfied - exiting 0 having silently run
+# nothing (#1047). Make that failure loud instead: this suite's tests are
+# still autotools-only (see docs/HACKING / CLAUDE.md), so point at that.
+add_custom_target(test
+    COMMAND ${CMAKE_COMMAND} -E echo "error: the test suite is autotools-only for now."
+    COMMAND ${CMAKE_COMMAND} -E echo "  from ${CMAKE_SOURCE_DIR}: run ./autogen.sh, then ./configure, then sudo make test in test/"
+    COMMAND ${CMAKE_COMMAND} -E false
+    COMMENT "cmake does not run the test suite yet"
+)
+
 add_compile_definitions(HAVE_CONFIG_H)
 
 # Common include order: generated headers first, then the source tree
