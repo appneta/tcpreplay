@@ -493,11 +493,12 @@ remove_settings(tOptions * opts, char const * fname)
     size_t const name_len = strlen(opts->pzProgName);
     tmap_info_t  map_info;
     char *       mapped = text_mmap(fname, PROT_READ|PROT_WRITE, MAP_PRIVATE, &map_info);
-    char *       text;
-    char *       scan;
+    char *       text = NULL;
+    char *       scan = NULL;
 
-    if (mapped == (char *)MAP_FAILED)
+    if (mapped == (char *)MAP_FAILED) {
         return;
+    }
 
     /*
      * text_mmap() only guarantees a trailing NUL on a best-effort basis:
@@ -544,7 +545,9 @@ remove_settings(tOptions * opts, char const * fname)
             new_sz = map_info.txt_size - strlen(scan);
         else {
             int fd = open(fname, O_RDWR);
-            if (fd < 0) goto leave;
+            if (fd < 0) {
+                goto leave;
+            }
             if (lseek(fd, (scan - text), SEEK_SET) < 0)
                 scan = next;
             else if (write(fd, next, strlen(next)) < 0)
