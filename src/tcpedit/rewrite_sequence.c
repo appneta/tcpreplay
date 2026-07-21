@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay.dev at gmail dot com> - AppNeta by Broadcom
  *   Copyright (c) 2017 Mario D. Santana <tcpreplay at elorangutan dot com> - El Orangutan
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it

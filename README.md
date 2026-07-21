@@ -300,9 +300,9 @@ contributors. See [`docs/LICENSE`](docs/LICENSE) for the full text.
 
 Authors
 =======
-Tcpreplay was created by Aaron Turner. Fred Klassen ([AppNeta]) took over
-maintenance in 2013, starting with the 4.0 release, adding the performance
-and flow-testing features described above.
+Tcpreplay was created by Aaron Turner. Fred Klassen ([AppNeta by Broadcom][AppNeta])
+took over maintenance in 2013, starting with the 4.0 release, adding the
+performance and flow-testing features described above.
 
 [GPLv3]:    http://www.gnu.org/licenses/gpl-3.0.html
 [netmap]:   https://github.com/luigirizzo/netmap

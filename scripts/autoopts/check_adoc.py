@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2013-2026 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+# Copyright (c) 2013-2026 Fred Klassen <tcpreplay.dev at gmail dot com> - AppNeta by Broadcom
 # GPLv3 - part of the Tcpreplay Suite.
 """Content-validate the AsciiDoc man-page emitter (#895 phase 2, stage 4).
 
