@@ -492,8 +492,31 @@ remove_settings(tOptions * opts, char const * fname)
 {
     size_t const name_len = strlen(opts->pzProgName);
     tmap_info_t  map_info;
-    char *       text = text_mmap(fname, PROT_READ|PROT_WRITE, MAP_PRIVATE, &map_info);
-    char *       scan = text;
+    char *       mapped = text_mmap(fname, PROT_READ|PROT_WRITE, MAP_PRIVATE, &map_info);
+    char *       text = NULL;
+    char *       scan = NULL;
+
+    if (mapped == (char *)MAP_FAILED) {
+        return;
+    }
+
+    /*
+     * text_mmap() only guarantees a trailing NUL on a best-effort basis:
+     * if the file size lands exactly on a page boundary, it tries to map
+     * an extra page after the data for the NUL byte, and if that extra
+     * mapping fails, it silently returns the buffer without one (see its
+     * own doc comment - callers are expected to check
+     * txt_size == txt_full_size to detect this). Every scan below assumes
+     * NUL-termination (strstr()/strlen() on "scan"), so work on a
+     * definitely-terminated heap copy instead of trusting that best-effort
+     * guarantee directly - a save file crafted to hit this case could
+     * otherwise send strstr()/strlen() reading past the mapped region
+     * (reported as #931).
+     */
+    text = (char *)AGALOC(map_info.txt_size + 1, "save file text");
+    memcpy(text, mapped, map_info.txt_size);
+    text[map_info.txt_size] = NUL;
+    scan = text;
 
     for (;;) {
         char * next = scan = strstr(scan, zCfgProg);
@@ -522,7 +545,9 @@ remove_settings(tOptions * opts, char const * fname)
             new_sz = map_info.txt_size - strlen(scan);
         else {
             int fd = open(fname, O_RDWR);
-            if (fd < 0) return;
+            if (fd < 0) {
+                goto leave;
+            }
             if (lseek(fd, (scan - text), SEEK_SET) < 0)
                 scan = next;
             else if (write(fd, next, strlen(next)) < 0)
@@ -537,6 +562,7 @@ remove_settings(tOptions * opts, char const * fname)
     }
 
  leave:
+    AGFREE(text);
     text_munmap(&map_info);
 }
 
