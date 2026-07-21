@@ -24,6 +24,6 @@ receiving such patches depend on the CVSS v3.0 Rating:
 ## Reporting a Vulnerability
 
 Please report (suspected) security vulnerabilities to
-**[tcpreplay@appneta.com](mailto:appneta.com)**. You will receive a response from
+**[tcpreplay.dev@gmail.com](mailto:tcpreplay.dev@gmail.com)**. You will receive a response from
 us within 72 hours. If the issue is confirmed, we will release a patch as soon
 as possible depending on complexity but historically within a few days.
