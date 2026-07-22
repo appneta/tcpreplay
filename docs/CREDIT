@@ -172,3 +172,7 @@ momo-trip <GitHub @momo-trip>
 
 Dmitrii Sharshakov <GitHub @dsseng>
     - tcpreplay: random packet loss simulation (#755, #1055, #1058)
+
+Solaris-star <GitHub @Solaris-star>
+    - common: found a pthread_attr leak and suggested explicit PACKET_TX_RING
+      teardown in txring (#1061, #1063)
