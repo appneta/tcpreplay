@@ -82,7 +82,11 @@ ip_opt_apply(void *d, struct pktq *pktq)
         uint16_t eth_type = htons(pkt->pkt_eth->eth_type);
 
         if (eth_type == ETH_TYPE_IP) {
-            len = ip_add_option(pkt->pkt_ip, PKT_BUF_LEN - ETH_HDR_LEN, IP_PROTO_IP, opt, opt->opt_len);
+            len = ip_add_option(pkt->pkt_ip,
+                                pkt->pkt_buf + pkt->pkt_buf_size - (u_char *)pkt->pkt_ip,
+                                IP_PROTO_IP,
+                                opt,
+                                opt->opt_len);
 
             if (len > 0) {
                 pkt->pkt_end += len;
