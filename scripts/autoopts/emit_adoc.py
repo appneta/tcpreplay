@@ -72,16 +72,26 @@ def _isolate_indent_runs(text):
     return _INDENT_RUN_RE.sub(lambda m: "\n" + m.group(1).rstrip("\n") + "\n\n", text)
 
 
-def _convert_body(text):
+def _convert_body(text, in_list=True):
     """Convert a chunk of prose (an item body, or a paragraph) to AsciiDoc:
     protect @example blocks from whitespace collapse, collapse line-wrapped
     prose to single lines, apply inline markup, and strip texinfo's
     "- " item-body marker (a bare hyphen prefix is a formatting convention
-    in these .def files, not meaningful content or an AsciiDoc bullet)."""
+    in these .def files, not meaningful content or an AsciiDoc bullet).
+
+    in_list controls how multiple paragraphs within this one chunk get
+    joined: '+' continuation is required when the result lands inside a
+    dd:: (description-list item body, e.g. an option's doc text) so
+    AsciiDoc doesn't end the list item at the first blank line - but that
+    same '+' renders as a literal, visible character when the result is
+    bare top-level document prose with no enclosing list (e.g. the
+    DESCRIPTION section's explain/detail text), where a plain blank line
+    is what's needed instead."""
     text = text.strip("\n")
     text = re.sub(r"^-\s+", "", text)  # texinfo item-body marker
     text = _isolate_indent_runs(text)
     placeholders = []
+    joiner = "\n+\n" if in_list else "\n\n"
 
     def stash(m):
         placeholders.append(_render_literal(m.group(1)))
@@ -97,12 +107,9 @@ def _convert_body(text):
         p = re.sub(r"[ \t]*\n[ \t]*", " ", p).strip()
         p = _inline(p)
         for i, block in enumerate(placeholders):
-            p = p.replace(f"\x00LITERAL{i}\x00", "\n+\n" + block + "\n+\n")
+            p = p.replace(f"\x00LITERAL{i}\x00", joiner + block + joiner)
         conv.append(p)
-    # '+' continuation joins multi-paragraph list-item bodies correctly both
-    # at the top level and inside a nested (open-block) description list;
-    # plain blank lines only work for the former
-    return "\n+\n".join(conv)
+    return joiner.join(conv)
 
 
 def _render_items(body):
@@ -134,7 +141,7 @@ def _render_items(body):
     return "\n".join(entries)
 
 
-def texi_to_adoc(text, nested=False):
+def texi_to_adoc(text, nested=False, in_list_item=True):
     """Convert a full .def doc/detail/explain text block to AsciiDoc.
 
     Paragraphs separate on blank lines.  @table/@enumerate blocks become
@@ -142,6 +149,13 @@ def texi_to_adoc(text, nested=False):
     another list item (an option's description), it must be wrapped in
     AsciiDoc's list-continuation ('+' then an open block) to nest
     correctly - the `nested` flag controls that wrapping.
+
+    `in_list_item` says whether this whole text block will itself land
+    inside a dd:: (e.g. an option's doc text, always True) versus as bare
+    top-level document prose with no enclosing list (e.g. the DESCRIPTION
+    section's explain/detail text, which must pass False) - see
+    _convert_body's docstring for why that changes how multi-paragraph
+    "para" pieces need to be joined.
     """
     if not text.strip():
         return ""
@@ -166,7 +180,7 @@ def texi_to_adoc(text, nested=False):
             else:
                 rendered.append(content)
         else:
-            rendered.append(_convert_body(content))
+            rendered.append(_convert_body(content, in_list=in_list_item))
     return "\n\n".join(r for r in rendered if r.strip())
 
 
@@ -345,8 +359,8 @@ def emit(def_path, base, defines=(), search=()):
     a("")
     a("== DESCRIPTION")
     a("")
-    explain = texi_to_adoc(text_of(m.attrs.get("explain", "")))
-    detail = texi_to_adoc(text_of(m.attrs.get("detail", "")))
+    explain = texi_to_adoc(text_of(m.attrs.get("explain", "")), in_list_item=False)
+    detail = texi_to_adoc(text_of(m.attrs.get("detail", "")), in_list_item=False)
     for block in (explain, detail):
         if block:
             a(block)
