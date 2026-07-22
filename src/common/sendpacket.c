@@ -767,8 +767,14 @@ sendpacket_close(sendpacket_t *sp)
         break;
 
     case SP_TYPE_PF_PACKET:
-    case SP_TYPE_TX_RING:
 #ifdef HAVE_PF_PACKET
+        close(sp->handle.fd);
+#endif
+        break;
+
+    case SP_TYPE_TX_RING:
+#ifdef HAVE_TX_RING
+        txring_close(sp->tx_ring);
         close(sp->handle.fd);
 #endif
         break;

@@ -55,9 +55,12 @@ struct txring_s {
     struct tpacket_req *treq;             /* TX ring parametrs */
     volatile unsigned int tx_index;       /* TX index */
     int tx_size;                          /* Size of mmaped TX ring */
+    int fd;                               /* Socket associated with this ring */
+    volatile int shutdown;                /* Stop flag for the poll thread */
 };
 typedef struct txring_s txring_t;
 
 int txring_put(txring_t *txp, const void *data, size_t length);
 txring_t *txring_init(int fd, unsigned int mtu);
+void txring_close(txring_t *txp);
 #endif /* HAVE_TX_RING */
