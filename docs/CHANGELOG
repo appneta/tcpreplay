@@ -8,7 +8,8 @@
     - netmap: fail cleanly on unconfigured interfaces reporting zero TX rings/slots (#113)
     - libtcpreplay: install the replay engine as a static C library (#133)
     - build: replace GNU autogen with a python3/asciidoctor-based generator (#895 phase 2)
-    - build: GNU autogen no longer required to build, generated files committed to git (#895 phase 1)
+    - build: GNU autogen no longer required to build, generated files committed to git; fixes
+      Debian Bug#1076243 (#895 phase 1)
     - build: CMake dist tarballs now build standalone; fix two plugins missing from dist (#1037)
     - cmake: fix configuration summary display and a LIBXDP false negative (#1039)
     - common: fix check_list() return type mismatch build warning
