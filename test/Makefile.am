@@ -661,9 +661,9 @@ rewrite_nanosec:
 	$(PRINTF) "%s\n" "*** [tcprewrite] Nanosecond timestamp test: " >> test.log
 	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(srcdir)/test_nano.pcap -o test.$@1  >> test.log 2>&1
 	if diff $(srcdir)/test$(VARIANT).$@ test.$@1 >> test.log 2>&1; then \
-	    $(PRINTF) "\t\t%s\n" "OK"; \
+	    $(PRINTF) "\t%s\n" "OK"; \
 	else \
-	    $(PRINTF) "\t\t%s\n" "FAILED"; od -Ax -tx1 -v test.$@1 >> test.log; false; \
+	    $(PRINTF) "\t%s\n" "FAILED"; od -Ax -tx1 -v test.$@1 >> test.log; false; \
 	fi
 
 rewrite_vlan802.1ad:
