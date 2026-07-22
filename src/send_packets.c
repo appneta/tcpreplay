@@ -592,8 +592,8 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             send_len -= l2len;
         }
 
-        /* write packet out on network, skipping it in random cases when asked for drop */
-        if ((options->drop == 1.0f || rand() > options->drop * RAND_MAX) &&
+        /* write packet out on network, randomly skipping it to simulate --loss */
+        if ((options->loss <= 0.0f || rand() > (options->loss / 100.0f) * RAND_MAX) &&
             sendpacket(sp, send_data, send_len, &pkthdr) < (int)send_len) {
             warnx("Unable to send packet: %s", sendpacket_geterr(sp));
             continue;
@@ -875,8 +875,8 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             send_len -= l2len;
         }
 
-        /* write packet out on network, skipping it in random cases when asked for drop */
-        if ((options->drop == 1.0f || rand() > options->drop * RAND_MAX) &&
+        /* write packet out on network, randomly skipping it to simulate --loss */
+        if ((options->loss <= 0.0f || rand() > (options->loss / 100.0f) * RAND_MAX) &&
             sendpacket(sp, send_data, send_len, pkthdr_ptr) < (int)send_len) {
             warnx("Unable to send packet: %s", sendpacket_geterr(sp));
             continue;
