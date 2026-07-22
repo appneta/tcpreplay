@@ -570,16 +570,23 @@ thus allowing for longer sleep times which can be more accurately implemented.
 EOText;
 };
 
+/* note that this is really a float, but autoopts does not support float */
 flag = {
-    name        = drop;
+    name        = loss;
     arg-type    = string;
     max         = 1;
-    descrip     = "Simluate random packet loss";
+    descrip     = "Simulate random percent packet loss (0-100)";
     doc         = <<- EOText
-Set to a value between 0 and 1 to simulate packet loss at send.
+Set to a percentage between 0 and 100 to simulate packet loss at send.
+Loss is random: each packet is independently dropped with the given
+probability, not on a fixed pattern (e.g. not every Nth packet), so the
+actual number dropped will vary slightly run to run. Dropped packets
+are not sent and are not counted as failed.
+
 Examples:
 @example
-    0.25 will drop around one quarter of packets (they will not be sent)
+    25 will drop approximately one quarter of packets, chosen at random
+    100 will drop every packet (nothing will be sent)
 @end example
 EOText;
 };

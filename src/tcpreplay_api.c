@@ -204,10 +204,15 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         options->speed.multiplier = atof(OPT_ARG(MULTIPLIER));
     }
 
-    if (HAVE_OPT(DROP)) {
-        options->drop = atof(OPT_ARG(DROP));
+    if (HAVE_OPT(LOSS)) {
+        options->loss = atof(OPT_ARG(LOSS));
+        if (options->loss < 0.0f || options->loss > 100.0f) {
+            tcpreplay_seterr(ctx, "invalid --loss value '%s': must be between 0 and 100", OPT_ARG(LOSS));
+            ret = -1;
+            goto out;
+        }
     } else {
-        options->drop = 1.0f;
+        options->loss = 0.0f;
     }
 
     if (HAVE_OPT(MAXSLEEP)) {

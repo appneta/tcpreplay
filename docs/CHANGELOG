@@ -1,4 +1,8 @@
 07/21/2026 Version 4.6.0-beta1
+    - tcpreplay: add --loss, random percent packet loss simulation (#755, #1055; contributed by
+      @dsseng) - each packet is independently dropped with the given 0-100 probability, useful for
+      testing/debugging UDP-based software (e.g. realtime audio streaming) against non-ideal
+      network conditions; final scale/naming and --help wording per maintainer review
     - tcpreplay: add --raw, a PF_INET/SOCK_RAW packet-injection backend (#465, originally attempted
       in #511) - lets replayed traffic pass through the local IP stack (routing,
       netfilter/iptables) instead of going straight onto the wire via PF_PACKET; trades off L2

@@ -105,7 +105,7 @@ typedef struct tcpreplay_opt_s {
     COUNTER loop;
     u_int32_t loopdelay_ms;
     u_int32_t loopdelay_ns;
-    float drop;
+    float loss; /* percent packet loss to simulate, 0-100; 0 (default) means disabled */
 
     int stats;
     bool use_pkthdr_len;
