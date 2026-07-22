@@ -1,251 +1,45 @@
-UNRELEASED
-    - libopts: fix out-of-bounds read in --save-opts handling (#931, reported by @momo-trip) -
-      remove_settings() (libopts/save.c), called to strip an existing program's section out of the
-      save-opts file before rewriting it, ran strstr()/strlen() directly on the buffer returned by
-      text_mmap() without checking it for failure first. text_mmap() returns MAP_FAILED outright
-      when the file doesn't exist yet (the common case: the first time --save-opts is used) or is
-      otherwise unmappable, and even on success only NUL-terminates on a best-effort basis - its own
-      doc comment notes that when the file size lands exactly on a page boundary, it tries to map an
-      extra page after the data to hold the terminator, and silently returns without one if that
-      extra mapping fails (checkable via txt_size == txt_full_size). remove_settings() checked
-      neither condition, so a missing/unmappable save file sent strstr() scanning from a pointer
-      near -1, and (in principle, though not independently reproduced outside of induced mmap
-      failure) a page-exact save file could do the same past the end of the mapping. Fixed by
-      copying exactly txt_size bytes into a heap buffer and NUL-terminating it explicitly before any
-      scanning, so the fix no longer depends on text_mmap()'s guarantees at all, plus an explicit
-      MAP_FAILED check. Verified under AddressSanitizer: the original code crashes
-      (heap-buffer-overflow / wild pointer read) when --save-opts targets a nonexistent file; the
-      fix does not
-    - common: finish fixing Linux TX_RING support after #1043 (#1044) - #1043 (thanks @plusky) fixed
-      a typo in src/common/txring.h's include guard ('__GLIBC_MINOR' instead of '__GLIBC_MINOR__',
-      always evaluating false, so the #else branch - missing the TX_RING API entirely - was taken
-      unconditionally on every glibc system) and switched to <linux/if_packet.h>, the header that
-      actually defines struct tpacket_hdr/tpacket_req/TPACKET_HDRLEN. That fix alone wasn't enough:
-      both build systems' own TX_RING feature probes (configure.ac, cmake/ConfigureChecks.cmake)
-      independently included <netpacket/packet.h> alongside <linux/if_packet.h> - the two cannot be
-      included together before C23 (both define struct sockaddr_ll/packet_mreq, and the
-      __UAPI_DEF_* de-duplication guards don't apply pre-C23) - so the probe itself failed to
-      compile under -std=gnu11/-std=gnu17, meaning HAVE_TX_RING was never defined in the first
-      place on affected systems (the openSUSE/Fedora-style "older language level" case #1043 called
-      out) and txring.h's now-correct code was never reached. Dropped the redundant
-      <netpacket/packet.h> from both probes (it supplies nothing they use). That in turn surfaced a
-      third instance of the same collision, now hit for the first time ever since TX_RING had never
-      actually compiled before: src/common/sendpacket.h and sendpacket.c each unconditionally
-      include <netpacket/packet.h> for struct sockaddr_ll whenever HAVE_PF_PACKET is set (in
-      sendpacket.c, also whenever HAVE_LIBURING is set) - both commonly true alongside HAVE_TX_RING
-      on a modern Linux system - which then collided with txring.h's <linux/if_packet.h>. Made those
-      includes conditional on !HAVE_TX_RING, since txring.h already provides struct sockaddr_ll via
-      <linux/if_packet.h> in that case. Verified end-to-end (not just that it compiles): with all
-      four fixes applied, 'Linux TX_RING: yes' is correctly detected by both build systems on a
-      real glibc/gnu17 system, tcpreplay reports 'Injection method: PF_PACKET / TX_RING', and
-      packets are actually sent successfully through it
-    - common: fix check_list() return type mismatch warning - declared 'int' in list.h but defined
-      as 'tcpr_dir_t' (an unrelated enum) in list.c, triggering '-Wenum-int-mismatch' on newer GCC;
-      the function only ever returns 0 or 1 and every caller treats the result as a plain boolean,
-      so tcpr_dir_t (TCPR_DIR_ERROR/NOSEND/C2S/S2C) was never actually meaningful here - likely a
-      copy-paste mistake, since it's the only function in list.c using that type. Now returns 'int',
-      matching the header and how it's actually used
-    - cmake: fix the configuration summary and a LIBXDP false negative (#1039) - CMake's
-      "TCPREPLAY Suite Configuration Results" banner interpolated raw CMake variables (empty on a
-      failed check, "1" on success) directly into the summary instead of normalizing them, so most
-      boolean feature lines (Linux TX_RING, BSD BPF, pcap_netmap, LIBXDP, ...) printed blank instead
-      of "no" like autotools' equivalent summary, and successes printed "1" instead of "yes"; a new
-      tcpr_yn() helper normalizes every such field for display only, without touching the
-      HAVE_xxx/ENABLE_xxx variables everything else in the build still uses. Separately, LIBXDP
-      detection itself was a genuine false negative, not just a display issue: the
-      HAVE_LIBXDP_COMPILES check_c_source_compiles() test calls xsk_socket__create() but never set
-      CMAKE_REQUIRED_LIBRARIES to link against -lxdp first (unlike the equivalent, correct liburing
-      check right below it) - check_c_source_compiles() actually builds and links a full test
-      executable despite its name, so the check failed with "undefined reference to
-      `xsk_socket__create'" even with libxdp-dev/libbpf-dev genuinely installed and autotools
-      correctly detecting it, silently disabling --xdp support in CMake builds that should have had
-      it; verified with libxdp-dev/libbpf-dev actually installed, matching autotools exactly
-    - build: make dist tarballs are now buildable with CMake, not just autotools (#1037) - every
-      CMakeLists.txt, CMakePresets.json, and cmake/*.cmake support module is now added to the
-      relevant EXTRA_DIST variables, so 'make dist'/'make dist-xz' tarballs ship both build
-      systems' files; also fixes two plugins (dlt_jnpr_ether, dlt_pppserial) whose *_api.c file
-      was never added to autotools' source list (present only in CMake's, so the file was missing
-      from dist tarballs entirely, breaking a from-tarball CMake build with 'cannot find source
-      file') - both now compile under both build systems. CMake's *_opts.c/h and man-page
-      generation (src/CMakeLists.txt) is restructured so man pages (*.adoc/*.1, not needed to
-      compile) no longer share a staleness check with *_opts.c/h (needed to compile): man-page
-      generation moves from eager configure-time execute_process() calls into the build graph via
-      add_custom_command() OUTPUT/DEPENDS, so it now only runs - needing python3/asciidoctor - when
-      the opt-in 'manpages' target is actually invoked, instead of every configure forcing python3
-      just because *.adoc (never distributed, see #1035/#1036) was missing; a tarball-shipped,
-      already-fresh *_opts.c/h now needs neither tool with CMake either, matching autotools
-    - build: GNU autogen is no longer required to build (#895, phase 1) - autogen is EOL (Debian
-      Bug#1076243), so the AutoOpts-generated option parsers (src/*_opts.c/h, tcpedit_stub.h) and
-      man pages are now committed to git; both build systems use them directly and only invoke
-      autogen to regenerate after a .def file changes (in the source tree, reproducibly - no
-      NETMAPFLAGS/absolute paths in the output), failing with clear instructions when a .def is
-      newer and autogen is absent; scripts/check-generated-opts.sh verifies in CI that the
-      committed output never drifts from the .def sources (and doubles as the equivalence oracle
-      for a future autogen-replacement generator); the macOS and CMake CI jobs now build without
-      autogen installed to prove it; the vendored libopts runtime (which provides --load-opts,
-      --more-help etc.) is unchanged
-    - build: replace GNU autogen as the generator for option parsers and man pages (#895, phase 2) -
-      scripts/autoopts is a from-scratch python3 reimplementation of autogen's .def-to-C pipeline
-      for all 7 tools, verified byte-identical against real autogen output during development
-      (scripts/autoopts/check_emitters.py's development-time oracle, see scripts/autoopts/README.md)
-      including its xgettext paragraph-splitting logic (ported from libopts' own
-      optionPrintParagraphs(), the actual in-tree algorithm autogen delegates to); man pages switch
-      source format from autogen's mdoc pipeline (no in-tree source of truth, ~1900 lines of
-      unvendored Scheme+Perl) to AsciiDoc generated directly from the same .def descrip/doc/explain/
-      detail fields that drive --help, rendered with asciidoctor -b manpage (content-validated via
-      scripts/autoopts/check_adoc.py: every option covered, zero groff warnings) rather than hand-
-      duplicated by tool as text; unlike phase 1, *_opts.c/h/.adoc/.1 are NOT committed to git -
-      they're ordinary build products regenerated from the .def at build time, restoring this
-      project's original convention for generated files (phase 1 had briefly committed *_opts.c/h
-      specifically because GNU autogen was becoming unobtainable; python3/asciidoctor don't have
-      that problem, so there's no need to keep deviating from the original convention for what they
-      produce - it was only causing unrelated diff noise on every .def edit, e.g. via the shared
-      tcpedit_opts.def); 'make dist'/'make dist-xz' ship only the rendered *_opts.c/h/.1, matching
-      the pre-#895 behavior of shipping pre-built man pages - not .adoc, which stays a git-checkout-
-      only build artifact; each .1 rule depends on its .def directly, like *_opts.c/h, not on .adoc,
-      so a shipped, already-fresh .1 doesn't force the (absent) .adoc to be built first; release
-      tarballs still need none of these tools, only a git-checkout build does; GNU autogen itself is
-      now needed only for src/tcpedit/tcpedit_stub.h, a distinct AutoOpts library template mode out
-      of scope for this phase (see scripts/autoopts/README.md) - that one file (and its .1) is the
-      sole exception that does stay committed, since autogen genuinely is EOL; as before, the
-      vendored libopts runtime is untouched
-    - libtcpreplay: install the replay engine as a static C library (#133) - both build systems
-      now install libtcpreplay.a, the tcpreplay_api.h header set (under include/tcpreplay/) and
-      a libtcpreplay.pc pkg-config file, so applications can replay pcap files and read live
-      statistics programmatically (tcpreplay_init/set_*/add_pcapfile/prepare/replay/get_stats)
-      instead of forking the tcpreplay binary and scraping its output; the archive is
-      self-contained apart from libpcap and system libopts (the libopts tearoff is folded in
-      when used); a compiled example lives in examples/replay_stats.c and builds as part of
-      'make' so it always matches the API
-    - netmap: fail cleanly on unconfigured interfaces reporting zero TX rings/slots (#113) - an
-      unattached vale port can register successfully with a non-zero memsize yet report zero
-      nr_tx_rings/nr_tx_slots, in which case the ring setup underflowed 'nr_tx_rings - 1' on a
-      uint16 (walking 65535 phantom rings) instead of producing an error; the existing
-      "not configured" check now also validates ring and slot counts and reports all three
-      values in the error message
-    - tcprewrite: preserve nanosecond timestamp resolution (#621) - input files are probed for
-      their native precision; nanosecond pcap and pcapng input is now opened and written at
-      nanosecond precision (nanosecond pcap output format), instead of silently truncating
-      timestamps to microseconds; microsecond input is byte-for-byte unchanged; requires
-      libpcap >= 1.5.1 (pcap_open_offline/dead_with_tstamp_precision), older libpcap keeps the
-      previous behavior; new rewrite_nanosec test case with a nanosecond fixture
-    - tcpedit: fix tcprewrite --dlt=raw producing corrupt output (#1023) - the dlt_raw plugin had
-      no encoder, and because the DLT conversion pipeline downgrades per-packet encode errors to
-      soft errors, every packet was silently written unconverted (Ethernet header intact) into a
-      file whose header claims LINKTYPE_RAW; the plugin now strips the source DLT's layer 2
-      header (as measured by the decoder, so VLAN tags etc. are included) and emits bare
-      IPv4/IPv6; non-IP packets (e.g. ARP) cannot be represented in DLT_RAW and remain soft
-      errors - pass --skip-soft-errors to drop them; new rewrite_dltraw test case
-    - tcpreplay: support raw IP (L3-only) interfaces such as WireGuard and tun (#988) - interfaces
-      whose hardware type is ARPHRD_NONE/ARPHRD_RAWIP are now detected in the PF_PACKET open path;
-      packets are sent as bare IP with the per-packet protocol (ETH_P_IP/ETH_P_IPV6) taken from
-      the IP version nibble, which drivers like WireGuard require, and any layer 2 header in the
-      source pcap (Ethernet incl. VLAN tags, SLL, loopback, ...) is stripped automatically at
-      send time so both DLT_EN10MB and DLT_RAW captures replay unmodified; non-IP packets (e.g.
-      ARP) fail with a clear per-packet message, the misleading 'Unsupported physical layer
-      type 0xfffe' and DLT-mismatch warnings are suppressed for these interfaces, and --io-uring
-      reports a clean unsupported-combination error instead of failing mid-replay
-    - cmake: fail configure on stale pre-generated AutoOpts files in the source tree (#1020) -
-      a leftover src/*_opts.h (from an earlier in-source build or an unpacked tarball) always
-      shadows the freshly generated build-dir copy because quote-includes search the including
-      file's directory first, breaking the build with 'INDEX_OPT_* undeclared' once a new CLI
-      option is added; configure now uses up-to-date pre-generated copies wholesale (release
-      tarballs keep working) and aborts with removal instructions when they are older than
-      their .def inputs; same guard for tcpedit_stub.h
-    - tcpreplay: add Linux io_uring packet injection support (#954) - new --io-uring option
-      (detected at build time when liburing-dev and an io_uring-capable kernel are present;
-      'liburing for io_uring' in the configure summary) sends packets through the existing
-      PF_PACKET raw socket but submits them asynchronously via an io_uring submission queue,
-      reducing per-packet syscall overhead; packets are copied into a pool of in-flight buffers
-      and completions are reaped opportunistically (blocking only when the pool is exhausted), so
-      timing options work unchanged; --enable-force-liburing / -DFORCE_INJECT_LIBURING=ON builds
-      a version that only uses io_uring; a new tcpreplay_io_uring test target repeats the whole
-      tcpreplay test group with --io-uring (CI runs it on Linux after 'make test'); documented in
-      docs/INSTALL and README
-    - build: add CMake build support alongside autotools (#688) - mirrors configure.ac
-      feature-for-feature (every --enable-*/--with-* flag has a CMake option, mapping table in the
-      CMakeLists.txt header comment), aimed at IDE workflows (VS Code, CLion) and out-of-tree
-      developer builds; version is parsed from configure.ac's AC_INIT so there is a single source
-      of truth, *_opts.c/tcpedit_stub.h are generated with autogen at build time (release tarballs
-      with pre-generated copies build without autogen), defines.h reuses src/defines.h.in, and the
-      netmap include path is applied to build targets only, preserving the net/bpf.h shadowing fix
-      above; includes CMakePresets.json (default/debug/asan/tsan), a Linux+macOS CMake CI job, and
-      documentation in README.md and docs/INSTALL; autotools remains the canonical release build
-      and 'make test' remains autotools-driven
+07/21/2026 Version 4.6.0-beta1
+    - build: add CMake build support alongside autotools (#688)
+    - tcpreplay: add Linux io_uring packet injection support via --io-uring (#954)
+    - cmake: fail configure on stale pre-generated AutoOpts files in the source tree (#1020)
+    - tcpreplay: support raw IP (L3-only) interfaces such as WireGuard and tun (#988)
+    - tcpedit: fix tcprewrite --dlt=raw producing corrupt output (#1023)
+    - tcprewrite: preserve nanosecond timestamp resolution (#621)
+    - netmap: fail cleanly on unconfigured interfaces reporting zero TX rings/slots (#113)
+    - libtcpreplay: install the replay engine as a static C library (#133)
+    - build: replace GNU autogen with a python3/asciidoctor-based generator (#895 phase 2)
+    - build: GNU autogen no longer required to build, generated files committed to git; fixes
+      Debian Bug#1076243 (#895 phase 1)
+    - build: CMake dist tarballs now build standalone; fix two plugins missing from dist (#1037)
+    - cmake: fix configuration summary display and a LIBXDP false negative (#1039)
+    - common: fix check_list() return type mismatch build warning
+    - common: fix Linux TX_RING support, broken by a header/probe collision (#1043 #1044)
+    - libopts: fix out-of-bounds read in --save-opts handling (#931)
 
 07/18/2026 Version 4.5.3
-    - configure: fix --with-netmap=DIR permanently leaking -I<DIR>/sys onto CFLAGS for the rest of
-      the script, with no restore (unlike the equivalent, correctly-scoped CPPFLAGS addition a few
-      lines later) - a netmap checkout's sys/ tree mirrors a BSD kernel source layout including
-      its own sys/net/bpf.h, so later unrelated checks (e.g. the net/bpf.h feature check) could
-      pick up netmap's vendored header instead of a real system one, wrongly setting HAVE_BPF=1 on
-      Linux and causing a struct bpf_insn redefinition conflict against the system libpcap headers
-      at build time; the netmap include path is now only applied to CFLAGS once, right before
-      AC_OUTPUT, after all other detection has finished
-    - configure: drop the bare -DND passed alongside --with-netmap=DIR's CFLAGS/CPPFLAGS - netmap's
-      own netmap_user.h defines a function-like ND(...) debug-print macro guarded by #ifndef ND, but
-      a valueless -DND makes the compiler predefine ND as the literal 1, so that guard sees ND as
-      already defined and every real ND(...) call site in netmap's headers expands to 1(...),
-      "called object is not a function or function pointer" (found while verifying the fix above,
-      #1015)
-    - tcpedit: fix --tcp-sequence and --portmap/-r silently having zero effect on some platforms
-      (confirmed on macOS arm64) - rewrite_ipv4_tcp_sequence()/rewrite_ipv6_tcp_sequence()
-      (rewrite_sequence.c) and rewrite_ipv4_ports()/rewrite_ipv6_ports() (portmap.c) computed the
-      L4 "end of buffer" bounds pointer from the address of their own ipv4_hdr_t**/ipv6_hdr_t**
-      parameter instead of the packet buffer address it pointed to ((u_char *)ip_hdr instead of
-      (u_char *)(*ip_hdr)); get_layer4_v4()/v6()'s bounds check against that garbage pointer then
-      either always passed (silently correct by luck) or always failed (silently rewriting
-      nothing), depending on platform-specific stack layout (#1011)
-    - tcpr_random: fix signed left-shift undefined behavior in this "consistent across all
-      platforms" PRNG - left-shifting a signed int such that a set bit crosses the sign bit is
-      undefined behavior in C, which different compiler backends are free to resolve differently;
-      switched the accumulator to unsigned so the shift is well-defined everywhere
-    - tcpliveplay: fix catch_alarm() not calling pcap_breakloop(), which left pcap_dispatch()
-      blocked for the full buffer timeout (or indefinitely, on libpcap implementations where the
-      timeout only starts once a packet arrives) instead of returning promptly when the alarm
-      fires - the visible symptom was a spurious "remote host is not responding" timeout up to 10s
-      after a response had actually arrived (#540)
-    - tcprewrite: rewrite IPv6 addresses embedded in ICMPv6 error messages (Destination
-      Unreachable, Packet Too Big, Time Exceeded, Parameter Problem) - RFC4443 has these embed the
-      original ("invoking") packet's IP header, which tcprewrite left untouched, leaking the
-      original addresses through capture sanitization/anonymization; also fixed a related
-      pre-existing bug where the ICMPv6 checksum was never fixed up when an outer IPv6 address
-      changed, unless --fixcsum was also passed (#818)
-    - sendpacket: fix "zc:<ifname>"-style PF_RING ZC device names failing with "ioctl: No such
-      device" - the default PF_PACKET path did a plain SIOCGIFINDEX lookup on the literal "zc:"
-      string, which the kernel doesn't recognize; route zc: devices through libpcap instead, which
-      is PF_RING-aware when built against PF_RING's patched libpcap (#913)
-    - netmap: fix --netmap failing to switch the driver to bypass mode with a bogus "nm_do_ioctl:
-      No such file or directory" error on real NICs (not VALE ports); a stray switch default case
-      made nm_do_ioctl() report failure - and leak the ioctl socket fd - for SIOCSIFFLAGS/ethtool
-      SET requests even when the underlying ioctl succeeded, regressed since 4.4.3 (#810)
-    - tcpreplay: bound and make abortable the netmap TX-ring drain wait at the end of --loop
-      replays; some netmap/driver combinations never report the ring empty, which used to hang
-      tcpreplay at 100% CPU with no way to Ctrl+C out (#560)
-    - tcpreplay: fix cumulative timing drift with --multiplier - each packet's sleep was computed
-      from the previous packet's actual send time instead of a fixed start-of-replay anchor, so
-      per-packet scheduling/syscall overhead accumulated over a long replay (100k packets sent in
-      10.37s instead of the targeted 10.00s). Also fixes the same drift in dual-interface (-I)
-      replay, which the original patch didn't cover. (#724, #915)
-    - sendpacket (Linux): warn when sending on an interface with no carrier (cable unplugged /
-      link down); sendto() on a down interface can report local success even though nothing
-      reaches the wire, making "successful packets" stats meaningless (#109)
-    - sendpacket: fix --xdp AF_XDP zero-copy TX failing with EINVAL on drivers (i40e, ixgbe)
-      that require a native XDP program attached before ndo_xdp_xmit works; let libbpf
-      auto-load its default program instead of inhibiting it (#956, #1002)
-    - configure: fix LIBXDP feature probe rejecting every real libxdp install due to a
-      pointer-indirection mismatch in the xsk_socket__create() compile check (#1002)
-    - fragroute: fix build failure on macOS 13/14 from TAILQ_FOREACH_REVERSE argument-order
-      collision between bundled lib/queue.h and system <sys/queue.h> (#981, #1001)
-    - tcpprep: fix buffer overflow in check_dst_port() reading TCP/UDP dest port on truncated
-      packets with incomplete L4 headers (#985, #995)
-    - tcprewrite: fix --enet-vlan=add silently truncating output packets by 4 bytes when
-      --enet-vlan-pri and/or --enet-vlan-cfi were omitted on untagged input (#990, #994)
-    - fragroute: fix heap-buffer-overflow in fragroute_process() when a crafted packet's MPLS label
-      stack produces an L2 header longer than the fixed 50-byte buffer (#992, #993)
-    - send_packets: fix miscalibrated overflow guards in calc_sleep_time() causing tcpreplay to stop
-      pacing (-M/-p) and blast remaining packets at full speed on long/high-count replays (#974, #989)
-    - sendpacket: bounded retry on EAGAIN/ENOBUFS to prevent endless retry loop / 100% CPU hang (#984, #986)
+    - configure: fix --with-netmap leaking -I<DIR>/sys into CFLAGS, breaking net/bpf.h detection on
+      Linux
+    - configure: drop bare -DND from --with-netmap flags, which broke netmap's ND() macro (#1015)
+    - tcpedit: fix --tcp-sequence and --portmap/-r having zero effect on some platforms (#1011)
+    - tcpr_random: fix signed left-shift undefined behavior in the PRNG
+    - tcpliveplay: fix catch_alarm() not calling pcap_breakloop(), causing spurious timeouts (#540)
+    - tcprewrite: rewrite IPv6 addresses embedded in ICMPv6 error messages (#818)
+    - sendpacket: fix "zc:<ifname>" PF_RING ZC device names failing to open (#913)
+    - netmap: fix --netmap failing to switch the driver to bypass mode on real NICs (#810)
+    - tcpreplay: bound and make abortable the netmap TX-ring drain wait on --loop (#560)
+    - tcpreplay: fix cumulative timing drift with --multiplier, including dual-interface replay
+      (#724 #915)
+    - sendpacket (Linux): warn when sending on a down/no-carrier interface (#109)
+    - sendpacket: fix --xdp AF_XDP zero-copy TX EINVAL on i40e/ixgbe (#956 #1002)
+    - configure: fix LIBXDP feature probe rejecting real libxdp installs (#1002)
+    - fragroute: fix build failure on macOS 13/14 from a TAILQ_FOREACH_REVERSE collision (#981 #1001)
+    - tcpprep: fix buffer overflow in check_dst_port() on truncated packets (#985 #995)
+    - tcprewrite: fix --enet-vlan=add silently truncating output by 4 bytes (#990 #994)
+    - fragroute: fix heap-buffer-overflow in fragroute_process() with crafted MPLS label stacks
+      (#992 #993)
+    - send_packets: fix miscalibrated overflow guards in calc_sleep_time() losing pacing on long
+      replays (#974 #989)
+    - sendpacket: bounded retry on EAGAIN/ENOBUFS to prevent endless retry loop (#984 #986)
 
 08/26/2025 Version 4.5.2
     - C23 standard support (#977)
