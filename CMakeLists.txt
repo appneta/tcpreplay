@@ -468,7 +468,7 @@ endfunction()
 foreach(_v PF_RING_FOUND ENABLE_64BITS ENABLE_FRAGROUTE ENABLE_TCPBRIDGE ENABLE_TCPLIVEPLAY
             HAVE_TX_RING HAVE_PF_PACKET HAVE_BPF HAVE_LIBDNET HAVE_PCAP_INJECT
             HAVE_PCAP_SENDPACKET HAVE_LIBPCAP_NETMAP HAVE_NETMAP HAVE_TUNTAP HAVE_LIBXDP
-            HAVE_LIBURING)
+            HAVE_LIBURING HAVE_SOCK_RAW)
     tcpr_yn(${_v} _yn_${_v})
 endforeach()
 
@@ -500,6 +500,7 @@ message(STATUS "Linux/BSD netmap:           ${_yn_HAVE_NETMAP} ${NETMAP_INCLUDE_
 message(STATUS "Tuntap device support:      ${_yn_HAVE_TUNTAP}")
 message(STATUS "LIBXDP for AF_XDP socket:   ${_yn_HAVE_LIBXDP}")
 message(STATUS "liburing for io_uring:      ${_yn_HAVE_LIBURING}")
+message(STATUS "PF_INET SOCK_RAW (--raw):   ${_yn_HAVE_SOCK_RAW}")
 message(STATUS "")
 message(STATUS "* In order of preference; see options in CMakeLists.txt to override")
 message(STATUS "** Required for tcpbridge")

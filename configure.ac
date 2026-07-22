@@ -1558,6 +1558,29 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
     AC_MSG_RESULT(no)
 ])
 
+have_sock_raw=no
+dnl Check for PF_INET/SOCK_RAW raw IP socket support (#465): unlike
+dnl PF_PACKET, packets sent this way go through the normal Linux IP stack
+dnl (routing, netfilter/iptables) rather than straight onto the wire.
+AC_MSG_CHECKING(for PF_INET SOCK_RAW raw IP socket sending support)
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <net/if.h>
+]], [[
+    int raw_socket;
+    struct ifreq ifr;
+    raw_socket = socket(PF_INET, SOCK_RAW, IPPROTO_RAW);
+    setsockopt(raw_socket, SOL_SOCKET, SO_BINDTODEVICE, &ifr, sizeof(ifr));
+]])],[
+    AC_DEFINE([HAVE_SOCK_RAW], [1],
+            [Do we have PF_INET SOCK_RAW raw IP socket support?])
+    AC_MSG_RESULT(yes)
+    have_sock_raw=yes
+],[
+    AC_MSG_RESULT(no)
+])
+
 have_libxdp=no
 dnl Check for LIBXDP AF_XDP socket support
 AC_MSG_CHECKING(for LIBXDP XDP packet sending support)
@@ -2170,6 +2193,7 @@ Linux/BSD netmap:           ${have_netmap}
 Tuntap device support:      ${have_tuntap}
 LIBXDP for AF_XDP socket:   ${have_libxdp}
 liburing for io_uring:      ${have_liburing}
+PF_INET SOCK_RAW (--raw):   ${have_sock_raw}
 
 * In order of preference; see configure --help to override
 ** Required for tcpbridge

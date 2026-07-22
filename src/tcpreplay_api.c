@@ -292,6 +292,20 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 #endif
     }
 
+    if (HAVE_OPT(RAW)) {
+#ifdef HAVE_SOCK_RAW
+        if (ctx->sp_type != SP_TYPE_NONE) {
+            tcpreplay_seterr(ctx, "%s", "--raw cannot be combined with --netmap, --xdp or --io-uring");
+            ret = -1;
+            goto out;
+        }
+        options->raw = 1;
+        ctx->sp_type = SP_TYPE_SOCK_RAW;
+#else
+        err(-1, "--raw feature was not compiled in. See INSTALL.");
+#endif
+    }
+
     if (HAVE_OPT(UNIQUE_IP))
         options->unique_ip = 1;
 

@@ -162,6 +162,10 @@ typedef struct tcpreplay_opt_s {
     int io_uring;
 #endif
 
+#ifdef HAVE_SOCK_RAW
+    int raw;
+#endif
+
     /* print flow statistic */
     bool flow_stats;
     int flow_expiry;

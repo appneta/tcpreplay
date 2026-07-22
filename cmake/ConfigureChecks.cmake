@@ -398,6 +398,20 @@ check_c_source_compiles("
 int main(void) { int test = TP_STATUS_WRONG_FORMAT; return test; }
 " HAVE_TX_RING)
 
+# PF_INET/SOCK_RAW raw IP socket support (#465): unlike PF_PACKET, packets
+# sent this way go through the normal Linux IP stack (routing,
+# netfilter/iptables) rather than straight onto the wire. SO_BINDTODEVICE
+# is Linux-specific, so this probe effectively gates the feature to Linux.
+check_c_source_compiles("
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <net/if.h>
+int main(void) {
+    int raw_socket = socket(PF_INET, SOCK_RAW, IPPROTO_RAW);
+    struct ifreq ifr;
+    return setsockopt(raw_socket, SOL_SOCKET, SO_BINDTODEVICE, &ifr, sizeof(ifr));
+}" HAVE_SOCK_RAW)
+
 check_library_exists(bpf bpf_object__open_file "" HAVE_LIBBPF_LIB)
 check_library_exists(xdp xsk_umem__delete "" HAVE_LIBXDP_LIB)
 if(HAVE_LIBXDP_LIB)

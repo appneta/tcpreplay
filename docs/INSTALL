@@ -196,7 +196,30 @@ example:
 If you want to compile a version that only uses io_uring, use the
 `--enable-force-liburing` configure option.
 
-4) libtcpreplay C library
+4) PF_INET raw IP sockets
+   -----------------------
+
+By default tcpreplay injects packets with PF_PACKET, which writes directly
+to the network driver below the IP stack - so locally-configured
+netfilter/iptables rules never see the traffic, even when replaying on the
+same host those rules are configured on (#465). This feature is detected
+on Linux systems that support PF_INET/SOCK_RAW sockets with SO_BINDTODEVICE
+(essentially all of them), enabling the `--raw` option, which instead sends
+each packet's IP header and payload through a raw IP socket bound to the
+outbound interface, so the kernel's normal IP stack - including
+netfilter/iptables - processes it like any other locally-generated packet.
+The trade-off is L2 fidelity: the kernel builds its own Ethernet framing,
+so the captured source/destination MAC addresses are not reproduced, and
+only IPv4 is currently supported. For example:
+
+    $ ./configure | tail
+    liburing for io_uring:      yes
+    PF_INET SOCK_RAW (--raw):   yes
+    $ make
+    $ sudo make install
+    $ tcpreplay -i eth0 --raw test/test.pcap
+
+5) libtcpreplay C library
    ----------------------
 
 Both build systems install libtcpreplay.a, the tcpreplay_api.h headers
