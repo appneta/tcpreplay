@@ -169,3 +169,6 @@ plusky <GitHub @plusky>
 momo-trip <GitHub @momo-trip>
     - reported an out-of-bounds read in libopts' --save-opts handling triggered by strstr()
       running on a possibly-unmapped/non-terminated buffer (#931)
+
+Dmitrii Sharshakov <GitHub @dsseng>
+    - tcpreplay: random packet loss simulation (#755, #1055)
