@@ -1,3 +1,23 @@
+07/22/2026 Version 4.5.4
+    - SECURITY: fix heap buffer overflow in the tcprewrite fragroute tcp_opt module
+      (GHSA-pfqg-243f-8q25, CWE-787, CVSS 8.4). tcp_opt_apply() (src/fragroute/mod_tcp_opt.c)
+      passed sizeof(pkt->pkt_data) - ETH_HDR_LEN as the buffer-capacity bound to
+      inet_add_option(); pkt_data is a pointer, so sizeof() was 8 on 64-bit builds and the
+      subtraction underflowed size_t to near SIZE_MAX, disabling the bounds check and letting
+      libdnet's option-insertion memmove() write past the packet's heap allocation. The bound is
+      now computed from the real buffer extent (pkt->pkt_buf + pkt->pkt_buf_size - pkt->pkt_ip).
+      Reported by tinyb0y.
+    - SECURITY: fix heap buffer overflow in the tcprewrite fragroute ip6_opt module
+      (GHSA-2wmf-4p77-784q, CWE-787). ip6_opt_apply() (src/fragroute/mod_ip6_opt.c) inserted IPv6
+      routing/extension headers with memmove()/memcpy() without checking that the inserted bytes
+      fit the packet's remaining buffer headroom. Both the route and raw paths now verify
+      pkt_end + offset stays within the allocation and skip the packet otherwise. Reported by
+      tinyb0y.
+    - SECURITY: fix the same class of unchecked option-insertion overflow in the fragroute ip_opt
+      module (src/fragroute/mod_ip_opt.c), which used a fixed PKT_BUF_LEN - ETH_HDR_LEN bound that
+      overcounts capacity by the buffer's lead-alignment pad on small packets; it now uses the same
+      real buffer-extent bound as tcp_opt.
+
 07/18/2026 Version 4.5.3
     - configure: fix --with-netmap=DIR permanently leaking -I<DIR>/sys onto CFLAGS for the rest of
       the script, with no restore (unlike the equivalent, correctly-scoped CPPFLAGS addition a few

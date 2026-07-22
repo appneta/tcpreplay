@@ -122,6 +122,10 @@ ip6_opt_apply(void *d, struct pktq *pktq)
 
         if (opt->type == OPT6_TYPE_ROUTE) {
             offset = 8 + IP6_ADDR_LEN * opt->u.route.segments;
+            if ((u_char *)pkt->pkt_end + offset > pkt->pkt_buf + pkt->pkt_buf_size) {
+                warnx("ip6_opt: not enough buffer headroom to insert routing header, skipping packet");
+                continue;
+            }
             memmove(((u_char *)ext) + offset, ext, pkt->pkt_end - (u_char *)ext);
 
             pkt->pkt_end += offset;
@@ -143,6 +147,10 @@ ip6_opt_apply(void *d, struct pktq *pktq)
 
         } else if (opt->type == OPT6_TYPE_RAW) {
             offset = opt->u.raw.len;
+            if ((u_char *)pkt->pkt_end + offset > pkt->pkt_buf + pkt->pkt_buf_size) {
+                warnx("ip6_opt: not enough buffer headroom to insert extension header, skipping packet");
+                continue;
+            }
             memmove(((u_char *)ext) + offset, ext, pkt->pkt_end - (u_char *)ext);
 
             pkt->pkt_end += offset;
