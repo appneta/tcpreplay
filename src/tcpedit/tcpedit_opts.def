@@ -292,6 +292,7 @@ the actual packet length
 @item
 @var{del}
 Delete the packet
+@end table
 EOText;
 };
 

@@ -104,6 +104,7 @@ VLAN tag.
 @item
 @var{del}
 Rewrites the existing 802.1q VLAN header as an 802.3 ethernet header
+@end table
 EOText;
 };
 
@@ -164,5 +165,6 @@ Specifies that 802.1q VLAN headers are to be added. This is the default.
 @var{802.1ad}
 Specifies that 802.1ad Q-in-Q VLAN headers are to be added. To make valid packets,
 input packets must already have 802.1q VLAN headers.
+@end table
 EOText;
 };
