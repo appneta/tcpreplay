@@ -55,7 +55,7 @@ txring_send(void *arg)
 {
     int ec_send;
     static int total = 0;
-    int fd_socket = (int)arg;
+    int fd_socket = (int)(intptr_t)arg;
 
     do {
         /* send all buffers with TP_STATUS_SEND_REQUEST */
@@ -74,7 +74,7 @@ txring_send(void *arg)
     // if(blocking) printf("end of task send()\n");
     // printf("end of task send(ec=%x)\n", ec_send);
 
-    return (void *)ec_send;
+    return (void *)(intptr_t)ec_send;
 }
 
 /**
@@ -229,7 +229,7 @@ txring_init(int fd, unsigned int mtu)
     para_send.sched_priority = 20;
     pthread_attr_setschedparam(&t_attr_send, &para_send);
 
-    if (pthread_create(&txp->tx_send, &t_attr_send, txring_send, (void *)fd) != 0) {
+    if (pthread_create(&txp->tx_send, &t_attr_send, txring_send, (void *)(intptr_t)fd) != 0) {
         perror("pthread_create() failed\n");
         abort();
     }
