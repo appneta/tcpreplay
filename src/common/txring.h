@@ -50,14 +50,17 @@
 
 struct txring_s {
     pthread_t tx_send; /*Poll TX thread*/
+    int fd;            /* socket fd the poll thread sends on */
 
     volatile struct tpacket_hdr *tx_head; /* Pointer to mmaped memory with TX ring */
     struct tpacket_req *treq;             /* TX ring parametrs */
     volatile unsigned int tx_index;       /* TX index */
     int tx_size;                          /* Size of mmaped TX ring */
+    volatile int shutdown_flag;           /* set by txring_close() to stop the poll thread */
 };
 typedef struct txring_s txring_t;
 
 int txring_put(txring_t *txp, const void *data, size_t length);
 txring_t *txring_init(int fd, unsigned int mtu);
+void txring_close(txring_t *txp);
 #endif /* HAVE_TX_RING */

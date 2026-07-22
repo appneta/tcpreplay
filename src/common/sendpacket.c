@@ -878,8 +878,12 @@ sendpacket_close(sendpacket_t *sp)
 #endif
         break;
 
-    case SP_TYPE_PF_PACKET:
     case SP_TYPE_TX_RING:
+#if defined HAVE_PF_PACKET && defined HAVE_TX_RING
+        txring_close(sp->tx_ring);
+#endif
+        /* FALLTHROUGH */
+    case SP_TYPE_PF_PACKET:
 #ifdef HAVE_PF_PACKET
         close(sp->handle.fd);
 #endif

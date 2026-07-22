@@ -44,7 +44,6 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-volatile int shutdown_flag = 0;
 int tdata_offset = TPACKET_HDRLEN - sizeof(struct sockaddr_ll);
 
 /**
@@ -55,11 +54,11 @@ txring_send(void *arg)
 {
     int ec_send;
     static int total = 0;
-    int fd_socket = (int)(intptr_t)arg;
+    txring_t *txp = (txring_t *)arg;
 
     do {
         /* send all buffers with TP_STATUS_SEND_REQUEST */
-        ec_send = sendto(fd_socket, NULL, 0, MSG_DONTWAIT, (struct sockaddr *)NULL, sizeof(struct sockaddr_ll));
+        ec_send = sendto(txp->fd, NULL, 0, MSG_DONTWAIT, (struct sockaddr *)NULL, sizeof(struct sockaddr_ll));
 
         if (ec_send > 0) {
             total += ec_send;
@@ -69,7 +68,7 @@ txring_send(void *arg)
             usleep(100);
         }
 
-    } while (!shutdown_flag);
+    } while (!txp->shutdown_flag);
 
     // if(blocking) printf("end of task send()\n");
     // printf("end of task send(ec=%x)\n", ec_send);
@@ -199,6 +198,8 @@ txring_init(int fd, unsigned int mtu)
     /* allocate memory for structure and fill it with different stuff*/
     txp = (txring_t *)safe_malloc(sizeof(txring_t));
     txp->treq = (struct tpacket_req *)safe_malloc(sizeof(struct tpacket_req));
+    txp->fd = fd;
+    txp->shutdown_flag = 0;
 
     txring_mkreq(txp->treq, mtu);
     txp->tx_size = txp->treq->tp_block_size * txp->treq->tp_block_nr;
@@ -207,12 +208,16 @@ txring_init(int fd, unsigned int mtu)
     /* Set PACKET_LOSS sockoption */
     if (setsockopt(fd, SOL_PACKET, PACKET_LOSS, (char *)&mode_loss, sizeof(mode_loss)) < 0) {
         perror("setsockopt: PACKET_LOSS");
+        free(txp->treq);
+        free(txp);
         return NULL;
     }
 
     /* Enable TX Ring */
     if (setsockopt(fd, SOL_PACKET, PACKET_TX_RING, (char *)txp->treq, sizeof(struct tpacket_req)) < 0) {
         perror("Can't setsockopt PACKET_TX_RING");
+        free(txp->treq);
+        free(txp);
         return NULL;
     }
 
@@ -220,6 +225,8 @@ txring_init(int fd, unsigned int mtu)
     txp->tx_head = mmap(0, txp->tx_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (txp->tx_head == MAP_FAILED) {
         perror("mmap() failed ");
+        free(txp->treq);
+        free(txp);
         return NULL;
     }
 
@@ -229,12 +236,32 @@ txring_init(int fd, unsigned int mtu)
     para_send.sched_priority = 20;
     pthread_attr_setschedparam(&t_attr_send, &para_send);
 
-    if (pthread_create(&txp->tx_send, &t_attr_send, txring_send, (void *)(intptr_t)fd) != 0) {
+    if (pthread_create(&txp->tx_send, &t_attr_send, txring_send, (void *)txp) != 0) {
         perror("pthread_create() failed\n");
         abort();
     }
 
     return txp;
+}
+
+/**
+ * \brief Tear down a TX ring: stop the poll thread, unmap the ring buffer,
+ * and free the txring_t itself (#leak found under AddressSanitizer)
+ */
+void
+txring_close(txring_t *txp)
+{
+    if (!txp)
+        return;
+
+    txp->shutdown_flag = 1;
+    pthread_join(txp->tx_send, NULL);
+
+    if (txp->tx_head != NULL && txp->tx_head != MAP_FAILED)
+        munmap((void *)txp->tx_head, txp->tx_size);
+
+    free(txp->treq);
+    free(txp);
 }
 
 #endif /* HAVE_TX_RING */
