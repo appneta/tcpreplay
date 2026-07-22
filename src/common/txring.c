@@ -208,16 +208,16 @@ txring_init(int fd, unsigned int mtu)
     /* Set PACKET_LOSS sockoption */
     if (setsockopt(fd, SOL_PACKET, PACKET_LOSS, (char *)&mode_loss, sizeof(mode_loss)) < 0) {
         perror("setsockopt: PACKET_LOSS");
-        free(txp->treq);
-        free(txp);
+        safe_free(txp->treq);
+        safe_free(txp);
         return NULL;
     }
 
     /* Enable TX Ring */
     if (setsockopt(fd, SOL_PACKET, PACKET_TX_RING, (char *)txp->treq, sizeof(struct tpacket_req)) < 0) {
         perror("Can't setsockopt PACKET_TX_RING");
-        free(txp->treq);
-        free(txp);
+        safe_free(txp->treq);
+        safe_free(txp);
         return NULL;
     }
 
@@ -225,8 +225,8 @@ txring_init(int fd, unsigned int mtu)
     txp->tx_head = mmap(0, txp->tx_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (txp->tx_head == MAP_FAILED) {
         perror("mmap() failed ");
-        free(txp->treq);
-        free(txp);
+        safe_free(txp->treq);
+        safe_free(txp);
         return NULL;
     }
 
@@ -241,27 +241,38 @@ txring_init(int fd, unsigned int mtu)
         abort();
     }
 
+    /* the attr object is only needed to seed the new thread; safe to
+     * release immediately once pthread_create() has returned (#1061) */
+    pthread_attr_destroy(&t_attr_send);
+
     return txp;
 }
 
 /**
- * \brief Tear down a TX ring: stop the poll thread, unmap the ring buffer,
- * and free the txring_t itself (#leak found under AddressSanitizer)
+ * \brief Tear down a TX ring: stop the poll thread, disable and unmap the
+ * ring buffer, and free the txring_t itself (#leak found under
+ * AddressSanitizer)
  */
 void
 txring_close(txring_t *txp)
 {
+    struct tpacket_req disable_req;
+
     if (!txp)
         return;
 
     txp->shutdown_flag = 1;
     pthread_join(txp->tx_send, NULL);
 
+    /* explicitly disable the ring before unmapping it (#1061) */
+    memset(&disable_req, 0, sizeof(disable_req));
+    setsockopt(txp->fd, SOL_PACKET, PACKET_TX_RING, (char *)&disable_req, sizeof(disable_req));
+
     if (txp->tx_head != NULL && txp->tx_head != MAP_FAILED)
         munmap((void *)txp->tx_head, txp->tx_size);
 
-    free(txp->treq);
-    free(txp);
+    safe_free(txp->treq);
+    safe_free(txp);
 }
 
 #endif /* HAVE_TX_RING */
