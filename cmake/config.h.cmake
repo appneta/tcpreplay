@@ -406,6 +406,9 @@
 /* Define to 1 if you have the 'snprintf' function. */
 #cmakedefine HAVE_SNPRINTF @HAVE_SNPRINTF@
 
+/* Do we have PF_INET SOCK_RAW raw IP socket support? */
+#cmakedefine HAVE_SOCK_RAW @HAVE_SOCK_RAW@
+
 /* Define to 1 if you have the 'socket' function. */
 #cmakedefine HAVE_SOCKET @HAVE_SOCKET@
 

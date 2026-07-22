@@ -78,7 +78,8 @@ typedef enum sendpacket_type_e {
     SP_TYPE_TUNTAP,
     SP_TYPE_LIBPCAP_DUMP,
     SP_TYPE_LIBXDP,
-    SP_TYPE_IO_URING
+    SP_TYPE_IO_URING,
+    SP_TYPE_SOCK_RAW
 } sendpacket_type_t;
 
 /* these are the file_operations ioctls */

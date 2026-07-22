@@ -194,6 +194,13 @@ static int sendpacket_send_raw_ip(sendpacket_t *, const u_char *, size_t);
 
 #endif /* HAVE_PF_PACKET */
 
+#ifdef HAVE_SOCK_RAW
+#include <net/if.h>
+#include <netinet/in.h>
+static sendpacket_t *sendpacket_open_sock_raw(const char *, char *);
+static int sendpacket_send_sock_raw(sendpacket_t *, const u_char *, size_t);
+#endif /* HAVE_SOCK_RAW */
+
 #ifdef HAVE_TUNTAP
 #ifdef HAVE_LINUX
 #include <linux/if_tun.h>
@@ -381,6 +388,40 @@ TRY_SEND_AGAIN:
     case SP_TYPE_TUNTAP:
         retcode = (int)write(sp->handle.fd, (void *)data, len);
         break;
+
+#ifdef HAVE_SOCK_RAW
+    case SP_TYPE_SOCK_RAW:
+        retcode = sendpacket_send_sock_raw(sp, data, len);
+
+        if (retcode == -2) {
+            retcode = -1; /* packet this backend can't send: hard failure, error already set */
+        } else if (retcode < 0 && !sp->abort) {
+            switch (errno) {
+            case EAGAIN:
+                sp->retry_eagain++;
+                goto TRY_SEND_AGAIN;
+            case ENOBUFS:
+                sp->retry_enobufs++;
+                goto TRY_SEND_AGAIN;
+            default:
+                sendpacket_seterr(sp,
+                                  "Error with PF_INET SOCK_RAW send() [" COUNTER_SPEC "]: %s (errno = %d)",
+                                  sp->sent + sp->failed + 1,
+                                  strerror(errno),
+                                  errno);
+            }
+        } else if (retcode >= 0) {
+            /*
+             * sendto() only reports the L3-only bytes actually written
+             * (the Ethernet header was stripped before sending), but
+             * callers compare our return value against the full captured
+             * packet length. Normalize to that on success, same as
+             * pcap_sendpacket() below.
+             */
+            retcode = (int)len;
+        }
+        break;
+#endif /* HAVE_SOCK_RAW */
 
         /* Linux PF_PACKET and TX_RING */
     case SP_TYPE_PF_PACKET:
@@ -710,6 +751,11 @@ sendpacket_open(const char *device,
                 sp = sendpacket_open_io_uring(device, errbuf);
             else
 #endif
+#ifdef HAVE_SOCK_RAW
+                    if (sendpacket_type == SP_TYPE_SOCK_RAW)
+                sp = sendpacket_open_sock_raw(device, errbuf);
+            else
+#endif
 #if defined HAVE_PF_PACKET
                 sp = sendpacket_open_pf(device, errbuf);
 #elif defined HAVE_LIBURING
@@ -747,6 +793,7 @@ sendpacket_open(const char *device,
         case SP_TYPE_LIBPCAP:
         case SP_TYPE_LIBXDP:
         case SP_TYPE_IO_URING:
+        case SP_TYPE_SOCK_RAW:
             if (sendpacket_is_running(sp->device) == 0) {
                 warnx("WARNING: %s has no carrier (cable unplugged or link down). Packets will "
                       "appear to send successfully but will not reach the wire.",
@@ -819,6 +866,9 @@ sendpacket_close(sendpacket_t *sp)
     assert(sp);
     switch (sp->handle_type) {
     case SP_TYPE_KHIAL:
+#ifdef HAVE_SOCK_RAW
+    case SP_TYPE_SOCK_RAW:
+#endif
         close(sp->handle.fd);
         break;
 
@@ -1381,6 +1431,110 @@ sendpacket_get_hwaddr_pf(sendpacket_t *sp)
 }
 #endif /* HAVE_PF_PACKET */
 
+#ifdef HAVE_SOCK_RAW
+/**
+ * Inner sendpacket_open() method for a PF_INET/SOCK_RAW raw IP socket
+ * (#465). Unlike PF_PACKET, packets sent this way go through the normal
+ * Linux IP stack -- routing, netfilter/iptables -- rather than straight
+ * onto the wire, at the cost of L2 fidelity: the kernel builds its own
+ * Ethernet framing, so the captured source/dest MAC are not reproduced.
+ */
+static sendpacket_t *
+sendpacket_open_sock_raw(const char *device, char *errbuf)
+{
+    int mysocket;
+    struct ifreq ifr;
+    sendpacket_t *sp;
+    int err;
+    socklen_t errlen = sizeof(err);
+
+    assert(device);
+    assert(errbuf);
+
+    dbg(1, "sendpacket: using PF_INET SOCK_RAW");
+
+    /* IPPROTO_RAW implies IP_HDRINCL: we supply our own IP header */
+    if ((mysocket = socket(PF_INET, SOCK_RAW, IPPROTO_RAW)) < 0) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "raw socket: %s", strerror(errno));
+        return NULL;
+    }
+
+    /* bind socket to our interface so packets go out the requested NIC */
+    memset(&ifr, 0, sizeof(ifr));
+    strlcpy(ifr.ifr_name, device, sizeof(ifr.ifr_name));
+    if (setsockopt(mysocket, SOL_SOCKET, SO_BINDTODEVICE, &ifr, sizeof(ifr)) < 0) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "raw bind error: %s", strerror(errno));
+        close(mysocket);
+        return NULL;
+    }
+
+    /* check for errors, network down, etc... */
+    if (getsockopt(mysocket, SOL_SOCKET, SO_ERROR, &err, &errlen) < 0) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "error opening raw %s: %s", device, strerror(errno));
+        close(mysocket);
+        return NULL;
+    }
+
+    if (err > 0) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "error opening raw %s: %s", device, strerror(err));
+        close(mysocket);
+        return NULL;
+    }
+
+    /* prep & return our sp handle */
+    sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
+    memset(sp, 0, sizeof(*sp));
+    strlcpy(sp->device, device, sizeof(sp->device));
+    sp->handle.fd = mysocket;
+    sp->handle_type = SP_TYPE_SOCK_RAW;
+
+    return sp;
+}
+
+/**
+ * Send a captured Ethernet-framed IPv4 packet on a PF_INET/SOCK_RAW socket
+ * (#465). Raw IP sockets take L3-only payloads, so the Ethernet header is
+ * stripped; the destination address is pulled from the IP header for
+ * sendto(), since the socket is connectionless. Only IPv4 is supported --
+ * IPv6 needs a separate PF_INET6 socket, which this backend doesn't open.
+ * Returns bytes sent, -1 on send error (errno valid), or -2 for a packet
+ * this backend can't handle (non-IPv4, truncated) -- error already set.
+ */
+static int
+sendpacket_send_sock_raw(sendpacket_t *sp, const u_char *data, size_t len)
+{
+    const u_char *ip_data;
+    size_t ip_len;
+    const ipv4_hdr_t *ip_hdr;
+    struct sockaddr_in sin;
+
+    if (len <= sizeof(eth_hdr_t)) {
+        sendpacket_seterr(sp, "packet too short to hold an Ethernet + IP header on %s", sp->device);
+        return -2;
+    }
+
+    ip_data = data + sizeof(eth_hdr_t);
+    ip_len = len - sizeof(eth_hdr_t);
+
+    if (ip_len < sizeof(ipv4_hdr_t)) {
+        sendpacket_seterr(sp, "packet too short to hold an IPv4 header on %s", sp->device);
+        return -2;
+    }
+
+    ip_hdr = (const ipv4_hdr_t *)ip_data;
+    if (ip_hdr->ip_v != 4) {
+        sendpacket_seterr(sp, "%s (--raw) only supports IPv4; got IP version %u", sp->device, ip_hdr->ip_v);
+        return -2;
+    }
+
+    memset(&sin, 0, sizeof(sin));
+    sin.sin_family = AF_INET;
+    sin.sin_addr = ip_hdr->ip_dst;
+
+    return (int)sendto(sp->handle.fd, ip_data, ip_len, 0, (struct sockaddr *)&sin, sizeof(sin));
+}
+#endif /* HAVE_SOCK_RAW */
+
 #if defined HAVE_BPF
 /**
  * Inner sendpacket_open() method for using BSD's BPF interface
@@ -1539,6 +1693,7 @@ sendpacket_get_dlt(sendpacket_t *sp)
     case SP_TYPE_LIBXDP:
     case SP_TYPE_IO_URING:
     case SP_TYPE_LIBPCAP_DUMP:
+    case SP_TYPE_SOCK_RAW:
         /* always EN10MB */
         return dlt;
     default:;

@@ -1,4 +1,8 @@
 07/21/2026 Version 4.6.0-beta1
+    - tcpreplay: add --raw, a PF_INET/SOCK_RAW packet-injection backend (#465, originally attempted
+      in #511) - lets replayed traffic pass through the local IP stack (routing,
+      netfilter/iptables) instead of going straight onto the wire via PF_PACKET; trades off L2
+      fidelity (kernel builds its own Ethernet framing) and is IPv4-only for now
     - build: add CMake build support alongside autotools (#688)
     - tcpreplay: add Linux io_uring packet injection support via --io-uring (#954)
     - cmake: fail configure on stale pre-generated AutoOpts files in the source tree (#1020)

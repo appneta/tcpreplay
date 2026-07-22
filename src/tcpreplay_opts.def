@@ -756,6 +756,30 @@ EOText;
 };
 
 flag = {
+    ifdef       = HAVE_SOCK_RAW;
+    name        = raw;
+    descrip     = "Send packets via a PF_INET raw IP socket instead of PF_PACKET";
+    doc         = <<- EOText
+By default, tcpreplay injects packets with PF_PACKET, which writes directly
+to the network driver below the IP stack. This means locally-generated
+netfilter/iptables rules (and anything else hooked into the normal Linux IP
+stack) never see the traffic, even when replaying it on the same host that
+has those rules configured.
+
+This option instead sends each packet's IP header and payload through a
+PF_INET raw IP (@code{SOCK_RAW}) socket bound to the interface given by
+@var{--intf1}/@var{--intf2}, so the kernel's normal IP stack -- including
+netfilter/iptables -- processes it like any other locally-generated packet.
+
+The trade-off is L2 fidelity: the kernel builds its own Ethernet framing for
+the outgoing packet, so the source/destination MAC addresses from the
+capture are not reproduced, and only IPv4 packets are currently supported.
+This option is Linux-only and requires appropriate privileges to open a raw
+socket (typically root or @code{CAP_NET_RAW}).
+EOText;
+};
+
+flag = {
     name        = version;
     value       = V;
     descrip     = "Print version information";
