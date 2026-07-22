@@ -60,28 +60,41 @@ pcapng input produce a nanosecond resolution pcap output file, everything
 else produces the classic microsecond format (requires libpcap >= 1.5.1).
 
 tcprewrite currently supports reading the following DLT types:
+@table @bullet
 @item
-@var{DLT_C_HDLC} aka Cisco HDLC
+@var{DLT_C_HDLC}
+aka Cisco HDLC
 @item
-@var{DLT_EN10MB} aka Ethernet
+@var{DLT_EN10MB}
+aka Ethernet
 @item
-@var{DLT_LINUX_SLL} aka Linux Cooked Socket
+@var{DLT_LINUX_SLL}
+aka Linux Cooked Socket
 @item
-@var{DLT_LINUX_SLL2} aka Linux Cooked Socket v2
+@var{DLT_LINUX_SLL2}
+aka Linux Cooked Socket v2
 @item
-@var{DLT_RAW} aka RAW IP
+@var{DLT_RAW}
+aka RAW IP
 @item
-@var{DLT_NULL} aka BSD Loopback
+@var{DLT_NULL}
+aka BSD Loopback
 @item
-@var{DLT_LOOP} aka OpenBSD Loopback
+@var{DLT_LOOP}
+aka OpenBSD Loopback
 @item
-@var{DLT_IEEE802_11} aka 802.11a/b/g
+@var{DLT_IEEE802_11}
+aka 802.11a/b/g
 @item
-@var{DLT_IEEE802_11_RADIO} aka 802.11a/b/g with Radiotap headers
+@var{DLT_IEEE802_11_RADIO}
+aka 802.11a/b/g with Radiotap headers
 @item
-@var{DLT_JUNIPER_ETHER} aka Juniper Encapsulated Ethernet
+@var{DLT_JUNIPER_ETHER}
+aka Juniper Encapsulated Ethernet
 @item
-@var{DLT_PPP_SERIAL} aka PPP over Serial
+@var{DLT_PPP_SERIAL}
+aka PPP over Serial
+@end table
 
 Please see the --dlt option for supported DLT types for writing.
 
