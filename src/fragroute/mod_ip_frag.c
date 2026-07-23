@@ -54,7 +54,16 @@ ip_frag_open(int argc, char *argv[])
     ip_frag_data.rnd = rand_open();
     ip_frag_data.size = (int)strtol(argv[1], NULL, 10);
 
-    if (ip_frag_data.size == 0 || (ip_frag_data.size % 8) != 0) {
+    /*
+     * Reject non-positive sizes explicitly: a negative multiple of 8 passes
+     * the "% 8" test (-8 % 8 == 0 in C) and reaches memcpy() as a huge
+     * implicitly-converted size_t.
+     */
+    if (ip_frag_data.size <= 0 || ip_frag_data.size > IP_LEN_MAX) {
+        warn("fragment size must be between 1 and 65535 bytes");
+        return (ip_frag_close(&ip_frag_data));
+    }
+    if ((ip_frag_data.size % 8) != 0) {
         warn("fragment size must be a multiple of 8");
         return (ip_frag_close(&ip_frag_data));
     }

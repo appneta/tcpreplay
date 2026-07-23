@@ -13,6 +13,9 @@
 #include "config.h"
 #include "common.h"
 #include "argv.h"
+
+/* for FRAGROUTE_ERRBUF_LEN, the size callers give errbuf */
+#include "fragroute.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -89,7 +92,7 @@ mod_open(const char *script, char *errbuf)
 
     /* open the config/script file */
     if ((fp = fopen(script, "r")) == NULL) {
-        sprintf(errbuf, "couldn't open %s", script);
+        snprintf(errbuf, FRAGROUTE_ERRBUF_LEN, "couldn't open %s", script);
         return (-1);
     }
     dbg(1, "opened config file...");
@@ -101,7 +104,7 @@ mod_open(const char *script, char *errbuf)
 
         /* parse the line into an array */
         if ((argc = argv_create(buf, MAX_ARGS, argv)) < 1) {
-            sprintf(errbuf, "couldn't parse arguments (line %d)", i);
+            snprintf(errbuf, FRAGROUTE_ERRBUF_LEN, "couldn't parse arguments (line %d)", i);
             ret = -1;
             break;
         }
@@ -117,14 +120,14 @@ mod_open(const char *script, char *errbuf)
 
         /* do we have a match? */
         if (*m == NULL) {
-            sprintf(errbuf, "unknown directive '%s' (line %d)", argv[0], i);
+            snprintf(errbuf, FRAGROUTE_ERRBUF_LEN, "unknown directive '%s' (line %d)", argv[0], i);
             ret = -1;
             break;
         }
 
         /* allocate memory for our rule */
         if ((rule = calloc(1, sizeof(*rule))) == NULL) {
-            sprintf(errbuf, "calloc");
+            snprintf(errbuf, FRAGROUTE_ERRBUF_LEN, "calloc");
             ret = -1;
             break;
         }
@@ -132,29 +135,35 @@ mod_open(const char *script, char *errbuf)
 
         /* pass the remaining args to the rule */
         if (rule->mod->open != NULL && (rule->data = rule->mod->open(argc, argv)) == NULL) {
-            sprintf(errbuf, "invalid argument to directive '%s' (line %d)", rule->mod->name, i);
+            snprintf(errbuf, FRAGROUTE_ERRBUF_LEN, "invalid argument to directive '%s' (line %d)", rule->mod->name, i);
             ret = -1;
             break;
         }
         /* append the rule to the rule list */
         TAILQ_INSERT_TAIL(&rules, rule, next);
+
+        /*
+         * The rule now belongs to the list; drop our reference so the orphan
+         * cleanup below can't free a rule that mod_apply() still walks.
+         */
+        rule = NULL;
     }
 
     /* close the file */
     fclose(fp);
     dbg(1, "close file...");
 
-    if (ret == 0) {
-        buf[0] = '\0';
-        TAILQ_FOREACH(rule, &rules, next)
-        {
-            strlcat(buf, rule->mod->name, sizeof(buf));
-            strlcat(buf, " -> ", sizeof(buf));
-        }
-        buf[strlen(buf) - 4] = '\0';
-        sprintf(errbuf, "wtf: %s", buf);
-    }
+    /*
+     * No success-path message is written to errbuf: it is only read when we
+     * return < 0.  The former "wtf: <rule list>" diagnostic built the list in
+     * a BUFSIZ (8192) local and sprintf()'d it into errbuf, which callers size
+     * at FRAGROUTE_ERRBUF_LEN (1024) - a rules file with enough directives
+     * overflowed the caller's stack buffer.  It also indexed buf[strlen(buf)-4]
+     * to trim the trailing " -> ", underflowing when the file parsed cleanly
+     * but produced no rules (empty or comment-only).
+     */
 
+    /* free a rule that was allocated but never made it onto the list */
     if (rule)
         free(rule);
 

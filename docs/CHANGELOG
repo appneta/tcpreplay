@@ -1,3 +1,42 @@
+07/23/2026 Version 4.6.0-beta2
+    - SECURITY: fix stack buffer overflow in the fragroute rules-file parser
+      (GHSA-777w-9599-w8g4, CWE-787). On a successful parse, mod_open() (src/fragroute/mod.c)
+      accumulated a "<mod> -> <mod> -> ..." diagnostic of every parsed rule into a BUFSIZ (8192)
+      local, then copied it into the caller's errbuf with an unbounded sprintf(); callers size
+      errbuf at FRAGROUTE_ERRBUF_LEN (1024), so a rules file with a few hundred valid one-word
+      directives overflowed a stack buffer in an ancestor frame (tcprewrite's main()) by several
+      kilobytes, before any packet was processed. The message was written only on the success
+      path, where errbuf is never read, so the whole diagnostic has been removed; the remaining
+      errbuf writes in mod_open() are now bounded with snprintf(). Reported by tinyb0y.
+    - SECURITY: fix out-of-bounds write on an empty fragroute rules file (CWE-787, CWE-191).
+      The same removed diagnostic trimmed its trailing " -> " with buf[strlen(buf) - 4] = '\0'.
+      A rules file that parsed cleanly but produced no rules (empty, or only comments and blank
+      lines) left buf empty, so the index underflowed size_t and wrote before the start of the
+      buffer. Found while reviewing GHSA-777w-9599-w8g4; fixed by the same removal.
+    - SECURITY: fix off-by-one heap buffer overflow in the fragroute ip_chaff module
+      (GHSA-m655-53p4-6qm8, CWE-193, CWE-787). ip_chaff_apply() (src/fragroute/mod_ip_chaff.c)
+      called rand_strset() with (pkt_end - pkt_ip_data + 1), writing one byte past the end of the
+      allocation pkt_dup() had just made; the call precedes the subtype switch, so it ran for every
+      ip_chaff invocation (dup, opt, or a numeric TTL) on any ordinary IP packet. Also fixed in the
+      same path: pkt_dup() (src/fragroute/pkt.c) never initialized the duplicate's pkt_buf_size,
+      which ip_chaff's opt subtype then passed to ip_add_option() as a capacity bound, and its
+      out-of-memory path freed the *source* packet - still linked in the caller's pktq - with
+      free() rather than releasing the half-built duplicate with the matching brel(). ip_chaff now
+      also checks pkt_dup() for failure. Reported by tinyb0y.
+    - SECURITY: fix heap buffer overflow via negative fragment/segment size in the fragroute
+      ip_frag and tcp_seg modules (GHSA-27v4-xhfx-g2rx, CWE-787, CWE-190). Both modules parsed
+      their size argument with strtol() and rejected only zero; ip_frag's "must be a multiple of
+      8" check also passed negative multiples (-8 % 8 == 0 in C). A negative size then defeated
+      the "does this fragment fit" guard (a signed comparison against a positive ptrdiff_t) and
+      reached memcpy() as a huge implicitly-converted size_t, in ip_frag_apply_ipv4(),
+      ip_frag_apply_ipv6() and tcp_seg_apply(). Both modules now require 1..IP_LEN_MAX at
+      rules-file parse time, which also rejects strtol() overflow truncating to a negative int.
+      Reported by tinyb0y.
+    - fragroute: don't free a rule that is still linked into the rule list. mod_open()'s cleanup
+      freed its last-allocated rule unconditionally; this was harmless only because the removed
+      success-path diagnostic left the variable NULL, and would otherwise have left a dangling
+      entry for mod_apply() to walk on every packet.
+
 07/21/2026 Version 4.6.0-beta1
     - tcpreplay: add --loss, random percent packet loss simulation (#755, #1055; contributed by
       @dsseng) - each packet is independently dropped with the given 0-100 probability, useful for

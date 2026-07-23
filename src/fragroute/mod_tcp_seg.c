@@ -49,8 +49,13 @@ tcp_seg_open(int argc, char *argv[])
     }
     tcp_seg_data.rnd = rand_open();
 
-    if ((tcp_seg_data.size = (int)strtol(argv[1], NULL, 10)) == 0) {
-        warnx("invalid segment size '%s'", argv[1]);
+    /*
+     * A negative size survives as a negative int, then reaches memcpy() as a
+     * huge implicitly-converted size_t (and walks the segment loop backwards).
+     */
+    tcp_seg_data.size = (int)strtol(argv[1], NULL, 10);
+    if (tcp_seg_data.size <= 0 || tcp_seg_data.size > IP_LEN_MAX) {
+        warnx("invalid segment size '%s' (must be between 1 and 65535 bytes)", argv[1]);
         return (tcp_seg_close(&tcp_seg_data));
     }
     if (argc == 3) {

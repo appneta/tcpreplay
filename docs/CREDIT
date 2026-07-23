@@ -180,6 +180,11 @@ Solaris-star <GitHub @Solaris-star>
 tinyb0y <GitHub @tinyb0y>
     - fragroute: reported heap buffer overflow in tcp_opt module (GHSA-pfqg-243f-8q25)
     - fragroute: reported heap buffer overflow in ip6_opt module (GHSA-2wmf-4p77-784q)
+    - fragroute: reported stack buffer overflow in the rules-file parser (GHSA-777w-9599-w8g4)
+    - fragroute: reported off-by-one heap buffer overflow in ip_chaff module
+      (GHSA-m655-53p4-6qm8)
+    - fragroute: reported heap buffer overflow via negative fragment/segment size in the
+      ip_frag and tcp_seg modules (GHSA-27v4-xhfx-g2rx)
 
 jiezhuzzz <GitHub @jiezhuzzz>
     - tcpedit: reported and proposed fix for SEGV in DLT_JUNIPER_ETHER plugin when used as
