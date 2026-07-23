@@ -1,3 +1,29 @@
+07/21/2026 Version 4.6.0-beta1
+    - tcpreplay: add --loss, random percent packet loss simulation (#755, #1055; contributed by
+      @dsseng) - each packet is independently dropped with the given 0-100 probability, useful for
+      testing/debugging UDP-based software (e.g. realtime audio streaming) against non-ideal
+      network conditions; final scale/naming and --help wording per maintainer review
+    - tcpreplay: add --raw, a PF_INET/SOCK_RAW packet-injection backend (#465, originally attempted
+      in #511) - lets replayed traffic pass through the local IP stack (routing,
+      netfilter/iptables) instead of going straight onto the wire via PF_PACKET; trades off L2
+      fidelity (kernel builds its own Ethernet framing) and is IPv4-only for now
+    - build: add CMake build support alongside autotools (#688)
+    - tcpreplay: add Linux io_uring packet injection support via --io-uring (#954)
+    - cmake: fail configure on stale pre-generated AutoOpts files in the source tree (#1020)
+    - tcpreplay: support raw IP (L3-only) interfaces such as WireGuard and tun (#988)
+    - tcpedit: fix tcprewrite --dlt=raw producing corrupt output (#1023)
+    - tcprewrite: preserve nanosecond timestamp resolution (#621)
+    - netmap: fail cleanly on unconfigured interfaces reporting zero TX rings/slots (#113)
+    - libtcpreplay: install the replay engine as a static C library (#133)
+    - build: replace GNU autogen with a python3/asciidoctor-based generator (#895 phase 2)
+    - build: GNU autogen no longer required to build, generated files committed to git; fixes
+      Debian Bug#1076243 (#895 phase 1)
+    - build: CMake dist tarballs now build standalone; fix two plugins missing from dist (#1037)
+    - cmake: fix configuration summary display and a LIBXDP false negative (#1039)
+    - common: fix check_list() return type mismatch build warning
+    - common: fix Linux TX_RING support, broken by a header/probe collision (#1043 #1044)
+    - libopts: fix out-of-bounds read in --save-opts handling (#931)
+
 07/22/2026 Version 4.5.4
     - SECURITY: fix heap buffer overflow in the tcprewrite fragroute tcp_opt module
       (GHSA-pfqg-243f-8q25, CWE-787, CVSS 8.4). tcp_opt_apply() (src/fragroute/mod_tcp_opt.c)
@@ -28,9 +54,11 @@
     - SECURITY: fix crash in remove_settings() on failed text_mmap (GHSA-5cjx-62pj-pmgq, CWE-476).
       remove_settings() (libopts/save.c), reachable from the AutoOpts option-file save/rewrite path
       (e.g. via --load-opts), dereferenced the pointer returned by text_mmap() without checking for
-      MAP_FAILED, unlike the other two callers in configfile.c. A missing/inaccessible/wrong-type/
-      empty settings file crashed the program. Fixed with the same TEXT_MMAP_FAILED_ADDR() guard
-      already used elsewhere in the codebase. Reported by jiezhuzzz.
+      MAP_FAILED, unlike the other two callers in configfile.c. On this branch the same underlying
+      remove_settings() bug was already independently fixed by the #931 rewrite above (which also
+      guards the MAP_FAILED case, plus a related non-NUL-terminated-buffer edge case); this entry is
+      kept for the historical record of the 4.5.4 patch release, where #931's fix was not yet
+      present. Reported by jiezhuzzz.
     - SECURITY: fix buffer overflow in the KHIAL sendpacket() path (GHSA-pjh6-6hrw-vcwr, CWE-787,
       CVSS 6.6). buffer_payload_size (src/common/sendpacket.c) was computed as sizeof(buffer) +
       sizeof(struct pcap_pkthdr) instead of sizeof(buffer) - sizeof(struct pcap_pkthdr), overstating
@@ -39,32 +67,6 @@
       following write() had the same problem in reverse, reading past the buffer into the character
       device. Fixed the calculation and added an explicit length check that rejects oversized
       packets before either memcpy or write() touch the buffer. Reported by 360AlphaLab.
-
-07/21/2026 Version 4.6.0-beta1
-    - tcpreplay: add --loss, random percent packet loss simulation (#755, #1055; contributed by
-      @dsseng) - each packet is independently dropped with the given 0-100 probability, useful for
-      testing/debugging UDP-based software (e.g. realtime audio streaming) against non-ideal
-      network conditions; final scale/naming and --help wording per maintainer review
-    - tcpreplay: add --raw, a PF_INET/SOCK_RAW packet-injection backend (#465, originally attempted
-      in #511) - lets replayed traffic pass through the local IP stack (routing,
-      netfilter/iptables) instead of going straight onto the wire via PF_PACKET; trades off L2
-      fidelity (kernel builds its own Ethernet framing) and is IPv4-only for now
-    - build: add CMake build support alongside autotools (#688)
-    - tcpreplay: add Linux io_uring packet injection support via --io-uring (#954)
-    - cmake: fail configure on stale pre-generated AutoOpts files in the source tree (#1020)
-    - tcpreplay: support raw IP (L3-only) interfaces such as WireGuard and tun (#988)
-    - tcpedit: fix tcprewrite --dlt=raw producing corrupt output (#1023)
-    - tcprewrite: preserve nanosecond timestamp resolution (#621)
-    - netmap: fail cleanly on unconfigured interfaces reporting zero TX rings/slots (#113)
-    - libtcpreplay: install the replay engine as a static C library (#133)
-    - build: replace GNU autogen with a python3/asciidoctor-based generator (#895 phase 2)
-    - build: GNU autogen no longer required to build, generated files committed to git; fixes
-      Debian Bug#1076243 (#895 phase 1)
-    - build: CMake dist tarballs now build standalone; fix two plugins missing from dist (#1037)
-    - cmake: fix configuration summary display and a LIBXDP false negative (#1039)
-    - common: fix check_list() return type mismatch build warning
-    - common: fix Linux TX_RING support, broken by a header/probe collision (#1043 #1044)
-    - libopts: fix out-of-bounds read in --save-opts handling (#931)
 
 07/18/2026 Version 4.5.3
     - configure: fix --with-netmap leaking -I<DIR>/sys into CFLAGS, breaking net/bpf.h detection on
