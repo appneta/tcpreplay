@@ -16,7 +16,18 @@ TCPBRIDGE=../src/tcpbridge
 
 TEST_PCAP=$(srcdir)/test.pcap
 
-EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
+# IP-only capture for the fragroute tests: fragroute aborts on the first
+# non-IP packet, and test.pcap contains plenty of those.
+FRAGROUTE_PCAP=$(srcdir)/test_fragroute.pcap
+
+if COMPILE_FRAGROUTE
+FRAGROUTE_TESTS = fragroute_valid fragroute_negsize fragroute_badrules
+else
+FRAGROUTE_TESTS =
+endif
+
+EXTRA_DIST = test.pcap test_fragroute.pcap \
+		test.auto_bridge test.auto_client test.auto_router \
 		test.auto_server test.auto_first test.cidr test.comment test.port test.mac \
 		test.cidr_reverse test.mac_reverse test.regex_reverse \
 		test.include_packets test.exclude_packets test.include_source \
@@ -216,7 +227,8 @@ tcprewrite: rewrite_portmap rewrite_range_portmap rewrite_endpoint \
 	rewrite_1ttl rewrite_2ttl rewrite_3ttl rewrite_1ttl-hdrfix rewrite_2ttl-hdrfix rewrite_3ttl-hdrfix \
 	rewrite_tos rewrite_mtutrunc rewrite_enet_subsmac rewrite_mac_seed \
 	rewrite_mac_seed_keep rewrite_l7fuzzing rewrite_sequence rewrite_fixcsum \
-	rewrite_fixlen_pad rewrite_fixlen_trunc rewrite_fixlen_del
+	rewrite_fixlen_pad rewrite_fixlen_trunc rewrite_fixlen_del \
+	$(FRAGROUTE_TESTS)
 
 tcpreplay: replay_basic replay_nano_timer replay_cache replay_pps replay_rate replay_top \
 	replay_config replay_multi replay_pps_multi replay_precache \
@@ -884,8 +896,99 @@ replay_unique_ip:
 	    $(PRINTF) "\t\t\t%s\n" "FAILED"; od -Ax -tx1 -v test.$@1 >> test.log; false; \
 	fi
 
+if COMPILE_FRAGROUTE
+# fragroute embeds random IP IDs and fills chaff packets with random bytes, so
+# its output is not reproducible run to run and there is no golden file to diff
+# against. These check exit status instead, and specifically distinguish a
+# clean rejection from a crash: tcprewrite exits 255 on a fatal error, while a
+# status of 128..254 means the shell saw it die from a signal (SIGSEGV is 139,
+# SIGABRT 134), which is what the memory-safety bugs in these modules looked
+# like.
+#
+# Note what fragroute_valid can and cannot catch. In an ordinary build it only
+# proves that valid rules still parse, run and produce output - the one-byte
+# heap overflows fixed in ip_chaff and tcp_chaff do not crash an unsanitized
+# binary, so this target passes against the buggy code. Configure with
+# --enable-asan to make those regressions fail here; the other two targets
+# catch their bugs (SIGSEGV) in a plain build.
+
+fragroute_valid:
+	$(PRINTF) "%s" "[tcprewrite] Fragroute valid rules test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Fragroute valid rules test: " >> test.log
+	rc=0; \
+	for rule in "ip_frag 8" "ip_frag 16 old" "ip_frag 8 new" "tcp_seg 8" \
+		    "tcp_seg 16 old" "ip_chaff dup" "ip_chaff opt" "tcp_chaff cksum" \
+		    "tcp_chaff null" "dup random 100" "order random" "ip_ttl 5"; do \
+	    $(PRINTF) "%s\n" "$$rule" > test.$@.rules; \
+	    $(PRINTF) "%s\n" "--- $$rule" >> test.log; \
+	    $(TCPREWRITE) $(ENABLE_DEBUG) --fragroute=test.$@.rules \
+		-i $(FRAGROUTE_PCAP) -o test.$@1 >> test.log 2>&1; \
+	    status=$$?; \
+	    if [ $$status -ne 0 ]; then \
+		$(PRINTF) "%s\n" "ERROR: '$$rule' exited $$status" >> test.log; rc=1; \
+	    elif [ ! -s test.$@1 ]; then \
+		$(PRINTF) "%s\n" "ERROR: '$$rule' produced no output" >> test.log; rc=1; \
+	    fi; \
+	done; \
+	if [ $$rc -eq 0 ]; then \
+	    $(PRINTF) "\t\t%s\n" "OK"; \
+	else \
+	    $(PRINTF) "\t\t%s\n" "FAILED"; false; \
+	fi
+
+# A negative fragment/segment size used to pass validation (-8 % 8 == 0) and
+# reach memcpy() as a huge size_t. It must be refused at parse time, and the
+# refusal must not be a crash.
+fragroute_negsize:
+	$(PRINTF) "%s" "[tcprewrite] Fragroute negative size test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Fragroute negative size test: " >> test.log
+	rc=0; \
+	for rule in "ip_frag -8" "ip_frag -16" "ip_frag 0" "tcp_seg -8" "tcp_seg 0"; do \
+	    $(PRINTF) "%s\n" "$$rule" > test.$@.rules; \
+	    $(PRINTF) "%s\n" "--- $$rule" >> test.log; \
+	    $(TCPREWRITE) $(ENABLE_DEBUG) --fragroute=test.$@.rules \
+		-i $(FRAGROUTE_PCAP) -o test.$@1 >> test.log 2>&1; \
+	    status=$$?; \
+	    if [ $$status -eq 0 ]; then \
+		$(PRINTF) "%s\n" "ERROR: '$$rule' was accepted" >> test.log; rc=1; \
+	    elif [ $$status -ge 128 ] && [ $$status -le 254 ]; then \
+		$(PRINTF) "%s\n" "ERROR: '$$rule' died from signal $$(($$status - 128))" >> test.log; rc=1; \
+	    fi; \
+	done; \
+	if [ $$rc -eq 0 ]; then \
+	    $(PRINTF) "\t\t%s\n" "OK"; \
+	else \
+	    $(PRINTF) "\t\t%s\n" "FAILED"; false; \
+	fi
+
+# Rules files that are degenerate but not invalid: many directives used to
+# overflow the caller's error buffer, and a file with no rules at all used to
+# index buf[strlen(buf) - 4]. Both must parse and run normally.
+fragroute_badrules:
+	$(PRINTF) "%s" "[tcprewrite] Fragroute degenerate rules test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Fragroute degenerate rules test: " >> test.log
+	rc=0; \
+	: > test.$@.empty.rules; \
+	$(PRINTF) "%s\n" "# nothing but a comment" > test.$@.comment.rules; \
+	awk 'BEGIN { for (i = 0; i < 300; i++) print "print" }' > test.$@.many.rules; \
+	for f in empty comment many; do \
+	    $(PRINTF) "%s\n" "--- $$f rules" >> test.log; \
+	    $(TCPREWRITE) $(ENABLE_DEBUG) --fragroute=test.$@.$$f.rules \
+		-i $(FRAGROUTE_PCAP) -o test.$@1 >> test.log 2>&1; \
+	    status=$$?; \
+	    if [ $$status -ne 0 ]; then \
+		$(PRINTF) "%s\n" "ERROR: $$f rules exited $$status" >> test.log; rc=1; \
+	    fi; \
+	done; \
+	if [ $$rc -eq 0 ]; then \
+	    $(PRINTF) "\t\t%s\n" "OK"; \
+	else \
+	    $(PRINTF) "\t\t%s\n" "FAILED"; false; \
+	fi
+endif
+
 clean:
-	rm -f *1 test.log core* *~ primary.data secondary.data
+	rm -f *1 test.log core* *~ primary.data secondary.data *.rules
 
 distclean: clean
 	rm -f Makefile Makefile.in config
