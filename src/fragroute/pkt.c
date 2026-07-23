@@ -45,7 +45,8 @@ pkt_new(size_t len)
     pkt->pkt_buf_size = PKT_BUF_ALIGN + len;
     pkt->pkt_buf = malloc(max((size_t)PKT_BUF_LEN, pkt->pkt_buf_size));
     if (pkt->pkt_buf == NULL) {
-        free(pkt);
+        /* pkt came from bget(), so it must go back via brel(), not free() */
+        brel(pkt);
         return NULL;
     }
 
@@ -70,9 +71,17 @@ pkt_dup(struct pkt *pkt)
 
     new->pkt_buf = malloc(pkt->pkt_buf_size);
     if (new->pkt_buf == NULL) {
-        free(pkt);
+        /*
+         * Release the half-built duplicate, not the source packet: pkt is
+         * still linked into the caller's pktq, and it came from bget(), so
+         * free() was both the wrong object and the wrong allocator.
+         */
+        brel(new);
         return NULL;
     }
+
+    /* the duplicate owns an allocation of its own; record its size */
+    new->pkt_buf_size = pkt->pkt_buf_size;
 
     off = new->pkt_buf - pkt->pkt_buf;
 
