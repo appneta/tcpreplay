@@ -70,6 +70,7 @@ Makefile.in
 configure
 config/
 src/config.h.in
+src/libtcpreplay.pc
 
 # AutoOpts-generated option parsers and man-page source/output
 # (scripts/autoopts + asciidoctor produce these from *_opts.def at build
