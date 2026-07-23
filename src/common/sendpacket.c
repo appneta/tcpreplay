@@ -308,7 +308,7 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len, struct pcap_pkthdr 
                                   * larger than page size so made static to
                                   * prevent page misses on stack
                                   */
-    static const size_t buffer_payload_size = sizeof(buffer) + sizeof(struct pcap_pkthdr);
+    static const size_t buffer_payload_size = sizeof(buffer) - sizeof(struct pcap_pkthdr);
     /* Bound the EAGAIN/ENOBUFS retry loop below so sustained buffer pressure (e.g. very
      * large frames) can't spin forever at 100% CPU; a short sleep between retries keeps
      * that spin from hammering the kernel while we wait for buffer space to free up.
@@ -342,8 +342,13 @@ TRY_SEND_AGAIN:
     switch (sp->handle_type) {
     case SP_TYPE_KHIAL:
 
+        if (len > buffer_payload_size) {
+            sendpacket_seterr(sp, "Packet too large for KHIAL buffer: %zu > %zu", len, buffer_payload_size);
+            return -1;
+        }
+
         memcpy(buffer, pkthdr, sizeof(struct pcap_pkthdr));
-        memcpy(buffer + sizeof(struct pcap_pkthdr), data, min(len, buffer_payload_size));
+        memcpy(buffer + sizeof(struct pcap_pkthdr), data, len);
 
         /* tell the kernel module which direction the traffic is going */
         if (sp->cache_dir == TCPR_DIR_C2S) { /* aka PRIMARY */
