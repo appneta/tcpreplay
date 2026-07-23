@@ -77,8 +77,16 @@ ip_chaff_apply(void *d, struct pktq *pktq)
         if (pkt->pkt_ip_data == NULL)
             continue;
 
-        new = pkt_dup(pkt);
-        rand_strset(data->rnd, new->pkt_ip_data, new->pkt_end - new->pkt_ip_data + 1);
+        if ((new = pkt_dup(pkt)) == NULL) {
+            return -1;
+        }
+
+        /*
+         * Fill only the bytes the duplicate actually owns.  The span is
+         * [pkt_ip_data, pkt_end), so the old "+ 1" wrote one byte past the
+         * end of the allocation pkt_dup() just made.
+         */
+        rand_strset(data->rnd, new->pkt_ip_data, new->pkt_end - new->pkt_ip_data);
 
         switch (data->type) {
         case CHAFF_TYPE_DUP:

@@ -54,7 +54,16 @@ ip_frag_open(int argc, char *argv[])
     ip_frag_data.rnd = rand_open();
     ip_frag_data.size = (int)strtol(argv[1], NULL, 10);
 
-    if (ip_frag_data.size == 0 || (ip_frag_data.size % 8) != 0) {
+    /*
+     * Reject non-positive sizes explicitly: a negative multiple of 8 passes
+     * the "% 8" test (-8 % 8 == 0 in C) and reaches memcpy() as a huge
+     * implicitly-converted size_t.
+     */
+    if (ip_frag_data.size <= 0 || ip_frag_data.size > IP_LEN_MAX) {
+        warn("fragment size must be between 1 and 65535 bytes");
+        return (ip_frag_close(&ip_frag_data));
+    }
+    if ((ip_frag_data.size % 8) != 0) {
         warn("fragment size must be a multiple of 8");
         return (ip_frag_close(&ip_frag_data));
     }
@@ -132,7 +141,10 @@ ip_frag_apply_ipv4(_U_ void *d, struct pktq *pktq)
             continue;
 
         for (p = pkt->pkt_ip_data; p < pkt->pkt_end;) {
-            new = pkt_new(pkt->pkt_buf_size);
+            if ((new = pkt_new(pkt->pkt_buf_size)) == NULL) {
+                return -1;
+            }
+
             memcpy(new->pkt_eth, pkt->pkt_eth, (u_char *)pkt->pkt_eth_data - (u_char *)pkt->pkt_eth);
             memcpy(new->pkt_ip, pkt->pkt_ip, hl);
             new->pkt_ip_data = new->pkt_eth_data + hl;
@@ -166,7 +178,10 @@ ip_frag_apply_ipv4(_U_ void *d, struct pktq *pktq)
             TAILQ_INSERT_BEFORE(pkt, new, pkt_next);
 
             if (p2 != NULL) {
-                new = pkt_dup(new);
+                if ((new = pkt_dup(new)) == NULL) {
+                    return -1;
+                }
+
                 new->pkt_ts.tv_usec = 1;
                 new->pkt_ip->ip_off = htons(IP_MF | off);
                 new->pkt_ip->ip_len = htons(hl + (fraglen << 1));
@@ -235,7 +250,10 @@ ip_frag_apply_ipv6(_U_ void *d, struct pktq *pktq)
         next_hdr = pkt->pkt_ip6->ip6_nxt;
 
         for (p = pkt->pkt_ip_data; p < pkt->pkt_end;) {
-            new = pkt_new(pkt->pkt_buf_size);
+            if ((new = pkt_new(pkt->pkt_buf_size)) == NULL) {
+                return -1;
+            }
+
             memcpy(new->pkt_eth, pkt->pkt_eth, (u_char *)pkt->pkt_eth_data - (u_char *)pkt->pkt_eth);
             memcpy(new->pkt_ip, pkt->pkt_ip, hl);
             ext = (struct ip6_ext_hdr *)((u_char *)new->pkt_eth_data + hl);
@@ -274,7 +292,10 @@ ip_frag_apply_ipv6(_U_ void *d, struct pktq *pktq)
             TAILQ_INSERT_BEFORE(pkt, new, pkt_next);
 
             if (p2 != NULL) {
-                new = pkt_dup(new);
+                if ((new = pkt_dup(new)) == NULL) {
+                    return -1;
+                }
+
                 new->pkt_ts.tv_usec = 1;
 
                 ext->ext_data.fragment.offlg = htons(off << 3) | IP6_MORE_FRAG;

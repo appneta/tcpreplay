@@ -49,8 +49,13 @@ tcp_seg_open(int argc, char *argv[])
     }
     tcp_seg_data.rnd = rand_open();
 
-    if ((tcp_seg_data.size = (int)strtol(argv[1], NULL, 10)) == 0) {
-        warnx("invalid segment size '%s'", argv[1]);
+    /*
+     * A negative size survives as a negative int, then reaches memcpy() as a
+     * huge implicitly-converted size_t (and walks the segment loop backwards).
+     */
+    tcp_seg_data.size = (int)strtol(argv[1], NULL, 10);
+    if (tcp_seg_data.size <= 0 || tcp_seg_data.size > IP_LEN_MAX) {
+        warnx("invalid segment size '%s' (must be between 1 and 65535 bytes)", argv[1]);
         return (tcp_seg_close(&tcp_seg_data));
     }
     if (argc == 3) {
@@ -109,7 +114,10 @@ tcp_seg_apply(_U_ void *d, struct pktq *pktq)
         for (p = pkt->pkt_tcp_data; p < pkt->pkt_end; p += len) {
             u_char *p1, *p2;
 
-            new = pkt_new(pkt->pkt_buf_size);
+            if ((new = pkt_new(pkt->pkt_buf_size)) == NULL) {
+                return -1;
+            }
+
             memcpy(new->pkt_eth, pkt->pkt_eth, (u_char *)pkt->pkt_eth_data - (u_char *)pkt->pkt_eth);
             p1 = p, p2 = NULL;
             len = MIN(pkt->pkt_end - p, tcp_seg_data.size);
@@ -150,7 +158,10 @@ tcp_seg_apply(_U_ void *d, struct pktq *pktq)
             TAILQ_INSERT_BEFORE(pkt, new, pkt_next);
 
             if (p2 != NULL) {
-                new = pkt_dup(new);
+                if ((new = pkt_dup(new)) == NULL) {
+                    return -1;
+                }
+
                 new->pkt_ts.tv_usec = 1;
                 if (eth_type == ETH_TYPE_IP) {
                     new->pkt_ip->ip_id = rand_uint16(tcp_seg_data.rnd);
