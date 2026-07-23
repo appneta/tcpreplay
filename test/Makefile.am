@@ -983,12 +983,15 @@ fragroute_negsize:
 	    $(PRINTF) "%s\n" "$$rule" > test.$@.rules; \
 	    $(PRINTF) "%s\n" "--- $$rule" >> test.log; \
 	    $(TCPREWRITE) $(ENABLE_DEBUG) --fragroute=test.$@.rules \
-		-i $(FRAGROUTE_PCAP) -o test.$@1 >> test.log 2>&1; \
+		-i $(FRAGROUTE_PCAP) -o test.$@1 > test.$@.out 2>&1; \
 	    status=$$?; \
+	    cat test.$@.out >> test.log; \
 	    if [ $$status -eq 0 ]; then \
 		$(PRINTF) "%s\n" "ERROR: '$$rule' was accepted" >> test.log; rc=1; \
 	    elif [ $$status -ge 128 ] && [ $$status -le 254 ]; then \
 		$(PRINTF) "%s\n" "ERROR: '$$rule' died from signal $$(($$status - 128))" >> test.log; rc=1; \
+	    elif ! grep -q "must be between 1 and 65535" test.$@.out; then \
+		$(PRINTF) "%s\n" "ERROR: '$$rule' failed, but not by rejecting the size" >> test.log; rc=1; \
 	    fi; \
 	done; \
 	if [ $$rc -eq 0 ]; then \
@@ -1024,7 +1027,7 @@ fragroute_badrules:
 endif
 
 clean:
-	rm -f *1 test.log core* *~ primary.data secondary.data *.rules
+	rm -f *1 test.log core* *~ primary.data secondary.data *.rules *.out
 
 distclean: clean
 	rm -f Makefile Makefile.in config
