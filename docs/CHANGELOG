@@ -1,3 +1,45 @@
+07/22/2026 Version 4.5.4
+    - SECURITY: fix heap buffer overflow in the tcprewrite fragroute tcp_opt module
+      (GHSA-pfqg-243f-8q25, CWE-787, CVSS 8.4). tcp_opt_apply() (src/fragroute/mod_tcp_opt.c)
+      passed sizeof(pkt->pkt_data) - ETH_HDR_LEN as the buffer-capacity bound to
+      inet_add_option(); pkt_data is a pointer, so sizeof() was 8 on 64-bit builds and the
+      subtraction underflowed size_t to near SIZE_MAX, disabling the bounds check and letting
+      libdnet's option-insertion memmove() write past the packet's heap allocation. The bound is
+      now computed from the real buffer extent (pkt->pkt_buf + pkt->pkt_buf_size - pkt->pkt_ip).
+      Reported by tinyb0y.
+    - SECURITY: fix heap buffer overflow in the tcprewrite fragroute ip6_opt module
+      (GHSA-2wmf-4p77-784q, CWE-787). ip6_opt_apply() (src/fragroute/mod_ip6_opt.c) inserted IPv6
+      routing/extension headers with memmove()/memcpy() without checking that the inserted bytes
+      fit the packet's remaining buffer headroom. Both the route and raw paths now verify
+      pkt_end + offset stays within the allocation and skip the packet otherwise. Reported by
+      tinyb0y.
+    - SECURITY: fix the same class of unchecked option-insertion overflow in the fragroute ip_opt
+      module (src/fragroute/mod_ip_opt.c), which used a fixed PKT_BUF_LEN - ETH_HDR_LEN bound that
+      overcounts capacity by the buffer's lead-alignment pad on small packets; it now uses the same
+      real buffer-extent bound as tcp_opt.
+    - SECURITY: fix SEGV in the tcpedit DLT_JUNIPER_ETHER plugin when used as a decoder
+      (GHSA-ww62-mxv7-pg55, CWE-704, CWE-843). dlt_jnpr_ether_post_init()/_cleanup()/_decode()/
+      _proto()/_get_mac()/_l2len() (src/tcpedit/plugins/dlt_jnpr_ether/jnpr_ether.c) read
+      ctx->encoder->config to get the plugin's own config, but this plugin only ever operates as a
+      decoder (packet encoding is unsupported) - ctx->encoder pointed at an unrelated plugin's
+      config struct, a type confusion that crashed tcpedit_dlt_getplugin() when processing
+      DLT_JUNIPER_ETHER input, e.g. via tcprewrite --dlt=enet. Fixed by reading ctx->decoder->config
+      in all six sites. Reported and originally patched by jiezhuzzz.
+    - SECURITY: fix crash in remove_settings() on failed text_mmap (GHSA-5cjx-62pj-pmgq, CWE-476).
+      remove_settings() (libopts/save.c), reachable from the AutoOpts option-file save/rewrite path
+      (e.g. via --load-opts), dereferenced the pointer returned by text_mmap() without checking for
+      MAP_FAILED, unlike the other two callers in configfile.c. A missing/inaccessible/wrong-type/
+      empty settings file crashed the program. Fixed with the same TEXT_MMAP_FAILED_ADDR() guard
+      already used elsewhere in the codebase. Reported by jiezhuzzz.
+    - SECURITY: fix buffer overflow in the KHIAL sendpacket() path (GHSA-pjh6-6hrw-vcwr, CWE-787,
+      CVSS 6.6). buffer_payload_size (src/common/sendpacket.c) was computed as sizeof(buffer) +
+      sizeof(struct pcap_pkthdr) instead of sizeof(buffer) - sizeof(struct pcap_pkthdr), overstating
+      the KHIAL send buffer's available space by 48 bytes (64-bit) and letting memcpy() overflow the
+      static buffer for packets >= 10024 bytes sent via tcpreplay --intf1=<khial-device>; the
+      following write() had the same problem in reverse, reading past the buffer into the character
+      device. Fixed the calculation and added an explicit length check that rejects oversized
+      packets before either memcpy or write() touch the buffer. Reported by 360AlphaLab.
+
 07/18/2026 Version 4.5.3
     - configure: fix --with-netmap=DIR permanently leaking -I<DIR>/sys onto CFLAGS for the rest of
       the script, with no restore (unlike the equivalent, correctly-scoped CPPFLAGS addition a few

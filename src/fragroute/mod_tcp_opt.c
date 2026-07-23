@@ -81,7 +81,7 @@ tcp_opt_apply(void *d, struct pktq *pktq)
 
         len = inet_add_option(eth_type,
                               pkt->pkt_ip,
-                              sizeof(pkt->pkt_data) - ETH_HDR_LEN,
+                              pkt->pkt_buf + pkt->pkt_buf_size - (u_char *)pkt->pkt_ip,
                               IP_PROTO_TCP,
                               opt,
                               opt->opt_len);
