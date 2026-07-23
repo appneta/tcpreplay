@@ -518,6 +518,9 @@ remove_settings(tOptions * opts, char const * fname)
     text[map_info.txt_size] = NUL;
     scan = text;
 
+    if (TEXT_MMAP_FAILED_ADDR(text))
+        return;
+
     for (;;) {
         char * next = scan = strstr(scan, zCfgProg);
         if (scan == NULL)
