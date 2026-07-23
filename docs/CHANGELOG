@@ -17,6 +17,28 @@
       module (src/fragroute/mod_ip_opt.c), which used a fixed PKT_BUF_LEN - ETH_HDR_LEN bound that
       overcounts capacity by the buffer's lead-alignment pad on small packets; it now uses the same
       real buffer-extent bound as tcp_opt.
+    - SECURITY: fix SEGV in the tcpedit DLT_JUNIPER_ETHER plugin when used as a decoder
+      (GHSA-ww62-mxv7-pg55, CWE-704, CWE-843). dlt_jnpr_ether_post_init()/_cleanup()/_decode()/
+      _proto()/_get_mac()/_l2len() (src/tcpedit/plugins/dlt_jnpr_ether/jnpr_ether.c) read
+      ctx->encoder->config to get the plugin's own config, but this plugin only ever operates as a
+      decoder (packet encoding is unsupported) - ctx->encoder pointed at an unrelated plugin's
+      config struct, a type confusion that crashed tcpedit_dlt_getplugin() when processing
+      DLT_JUNIPER_ETHER input, e.g. via tcprewrite --dlt=enet. Fixed by reading ctx->decoder->config
+      in all six sites. Reported and originally patched by jiezhuzzz.
+    - SECURITY: fix crash in remove_settings() on failed text_mmap (GHSA-5cjx-62pj-pmgq, CWE-476).
+      remove_settings() (libopts/save.c), reachable from the AutoOpts option-file save/rewrite path
+      (e.g. via --load-opts), dereferenced the pointer returned by text_mmap() without checking for
+      MAP_FAILED, unlike the other two callers in configfile.c. A missing/inaccessible/wrong-type/
+      empty settings file crashed the program. Fixed with the same TEXT_MMAP_FAILED_ADDR() guard
+      already used elsewhere in the codebase. Reported by jiezhuzzz.
+    - SECURITY: fix buffer overflow in the KHIAL sendpacket() path (GHSA-pjh6-6hrw-vcwr, CWE-787,
+      CVSS 6.6). buffer_payload_size (src/common/sendpacket.c) was computed as sizeof(buffer) +
+      sizeof(struct pcap_pkthdr) instead of sizeof(buffer) - sizeof(struct pcap_pkthdr), overstating
+      the KHIAL send buffer's available space by 48 bytes (64-bit) and letting memcpy() overflow the
+      static buffer for packets >= 10024 bytes sent via tcpreplay --intf1=<khial-device>; the
+      following write() had the same problem in reverse, reading past the buffer into the character
+      device. Fixed the calculation and added an explicit length check that rejects oversized
+      packets before either memcpy or write() touch the buffer. Reported by 360AlphaLab.
 
 07/18/2026 Version 4.5.3
     - configure: fix --with-netmap=DIR permanently leaking -I<DIR>/sys onto CFLAGS for the rest of
