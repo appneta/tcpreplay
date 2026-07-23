@@ -176,3 +176,15 @@ Dmitrii Sharshakov <GitHub @dsseng>
 Solaris-star <GitHub @Solaris-star>
     - common: found a pthread_attr leak and suggested explicit PACKET_TX_RING
       teardown in txring (#1061, #1063)
+
+tinyb0y <GitHub @tinyb0y>
+    - fragroute: reported heap buffer overflow in tcp_opt module (GHSA-pfqg-243f-8q25)
+    - fragroute: reported heap buffer overflow in ip6_opt module (GHSA-2wmf-4p77-784q)
+
+jiezhuzzz <GitHub @jiezhuzzz>
+    - tcpedit: reported and proposed fix for SEGV in DLT_JUNIPER_ETHER plugin when used as
+      a decoder (GHSA-ww62-mxv7-pg55)
+    - libopts: reported crash in remove_settings() on failed text_mmap (GHSA-5cjx-62pj-pmgq)
+
+360AlphaLab <GitHub @360AlphaLab>
+    - common: reported buffer overflow in the KHIAL sendpacket() path (GHSA-pjh6-6hrw-vcwr)
