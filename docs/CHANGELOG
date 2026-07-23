@@ -1,4 +1,14 @@
 07/23/2026 Version 4.6.0-beta2
+    - SECURITY: fix off-by-one heap buffer overflow in the fragroute tcp_chaff module
+      (CWE-193, CWE-787). tcp_chaff_apply() (src/fragroute/mod_tcp_chaff.c) called rand_strset()
+      with (pkt_end - pkt_tcp_data + 1), writing one byte past the end of the allocation pkt_dup()
+      had just made - the same defect as GHSA-m655-53p4-6qm8 in ip_chaff, in a module that
+      advisory did not cover. Triggered by any tcp_chaff directive against an ordinary TCP packet.
+      Found while auditing the ip_chaff fix.
+    - fragroute: check pkt_new()/pkt_dup() for failure in the ip_frag, tcp_seg and tcp_chaff
+      modules. Six call sites in ip_frag_apply_ipv4(), ip_frag_apply_ipv6(), tcp_seg_apply() and
+      tcp_chaff_apply() dereferenced the returned packet immediately, so an allocation failure
+      crashed on a NULL pointer instead of aborting the rule.
     - SECURITY: fix stack buffer overflow in the fragroute rules-file parser
       (GHSA-777w-9599-w8g4, CWE-787). On a successful parse, mod_open() (src/fragroute/mod.c)
       accumulated a "<mod> -> <mod> -> ..." diagnostic of every parsed rule into a BUFSIZ (8192)

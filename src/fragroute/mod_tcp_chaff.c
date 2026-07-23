@@ -103,8 +103,16 @@ tcp_chaff_apply(void *d, struct pktq *pktq)
             (pkt->pkt_tcp->th_flags & TH_ACK) == 0)
             continue;
 
-        new = pkt_dup(pkt);
-        rand_strset(data->rnd, new->pkt_tcp_data, new->pkt_end - new->pkt_tcp_data + 1);
+        if ((new = pkt_dup(pkt)) == NULL) {
+            return -1;
+        }
+
+        /*
+         * Fill only the bytes the duplicate actually owns.  The span is
+         * [pkt_tcp_data, pkt_end), so the old "+ 1" wrote one byte past the
+         * end of the allocation pkt_dup() just made.
+         */
+        rand_strset(data->rnd, new->pkt_tcp_data, new->pkt_end - new->pkt_tcp_data);
 
         switch (data->type) {
         case CHAFF_TYPE_CKSUM:
