@@ -624,6 +624,20 @@ get_layer4_v4(const ipv4_hdr_t *ip_hdr, const u_char *end_ptr)
     return ((void *)ptr);
 }
 
+/*
+ * Is a complete extension-header base (ip_nh + ip_len) readable at hdr?
+ *
+ * get_ipv6_next() only guarantees that the pointer it returns is not past
+ * end_ptr - it may be exactly end_ptr, or leave fewer bytes than the base
+ * header needs. Any caller that dereferences that pointer has to check first,
+ * or it reads off the end of the packet buffer.
+ */
+static inline bool
+ipv6_exthdr_fits(const struct tcpr_ipv6_ext_hdr_base *hdr, const u_char *end_ptr)
+{
+    return hdr != NULL && (const u_char *)hdr + sizeof(*hdr) <= end_ptr;
+}
+
 /**
  * returns a pointer to the layer 4 header which is just beyond the IPv6 header
  * and any extension headers or NULL when there is none as in the case of
@@ -662,7 +676,7 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const u_char *end_ptr)
         case TCPR_IPV6_NH_HBH:
             dbgx(3, "Going deeper due to extension header 0x%02X", proto);
             exthdr = get_ipv6_next(next, end_ptr);
-            if (exthdr == NULL) {
+            if (!ipv6_exthdr_fits(exthdr, end_ptr)) {
                 next = NULL;
                 done = true;
                 break;
@@ -678,7 +692,7 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const u_char *end_ptr)
             // next points to l4 data
             dbgx(3, "Go deeper due to fragment extension header 0x%02X", proto);
             exthdr = get_ipv6_next(next, end_ptr);
-            if ((exthdr == NULL) || ((u_char *)exthdr > end_ptr)) {
+            if (!ipv6_exthdr_fits(exthdr, end_ptr)) {
                 next = NULL;
                 done = true;
                 break;
@@ -701,6 +715,11 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const u_char *end_ptr)
          */
         default:
             if (proto != ip6_hdr->ip_nh && next) {
+                /* reading next->ip_len needs the base header to be present */
+                if (!ipv6_exthdr_fits(next, end_ptr)) {
+                    return NULL;
+                }
+
                 dbgx(3, "Returning byte offset of this ext header: %u", IPV6_EXTLEN_TO_BYTES(next->ip_len));
                 next = (void *)((u_char *)next + IPV6_EXTLEN_TO_BYTES(next->ip_len));
                 if ((u_char*)next > end_ptr)
