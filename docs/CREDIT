@@ -162,6 +162,10 @@ Gabriel Ganne <GitHub @GabrielGanne>
     - tcprewrite: fix vlan tag add silently truncating output when --enet-vlan-pri/-cfi omitted (#994)
     - tcpprep: fix buffer overflow in check_dst_port() on truncated L4 headers (#995)
 
+msxfXF <GitHub @msxfXF>
+    - common: reported heap buffer over-read in get_layer4_v6() when walking IPv6
+      extension headers (GHSA-jj65-mrgg-f5fx)
+
 tinyb0y <GitHub @tinyb0y>
     - fragroute: reported heap buffer overflow in tcp_opt module (GHSA-pfqg-243f-8q25)
     - fragroute: reported heap buffer overflow in ip6_opt module (GHSA-2wmf-4p77-784q)
