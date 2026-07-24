@@ -1,4 +1,14 @@
 07/23/2026 Version 4.5.5
+    - SECURITY: fix heap buffer over-read in get_layer4_v6() (GHSA-jj65-mrgg-f5fx, CWE-125).
+      get_ipv6_next() (src/common/get.c) validates the header it is given, but the pointer it
+      returns is only checked with "ptr > end_ptr" - so it may be exactly end_ptr, or leave
+      fewer bytes than a tcpr_ipv6_ext_hdr_base needs. get_layer4_v6() then read ip_nh straight
+      off that pointer, one byte past the packet buffer, for a crafted IPv6 packet whose
+      extension header chain runs to the end of the captured data. Reachable from tcpprep,
+      tcprewrite and tcpreplay when reading an untrusted pcap. A bounds check is now applied at
+      the three sites that dereference such a pointer. This was reported in 2024 against 4.4.4
+      and marked patched, but the reporter's proof-of-concept still reproduced on 4.5.4.
+      Reported by msxfXF.
     - SECURITY: fix stack buffer overflow in the fragroute rules-file parser
       (GHSA-777w-9599-w8g4, CWE-787). On a successful parse, mod_open()
       (src/fragroute/mod.c) accumulated a "<mod> -> <mod> -> ..." diagnostic of every parsed
