@@ -261,6 +261,7 @@ struct sendpacket_s {
     struct xsk_umem_info *umem_info;
     unsigned int batch_size;
     unsigned int pckt_count;
+    unsigned int umem_frame_count; /* frames in the umem - the in-flight ceiling */
     int frame_size;
     unsigned int tx_idx;
     int tx_size;
@@ -370,7 +371,9 @@ complete_tx_only(sendpacket_t *sp)
         }
     }
 
-    rcvd = xsk_ring_cons__peek(&sp->xsk_info->umem->cq, sp->pckt_count, &completion_idx);
+    /* reap everything available, not just one batch's worth: with several
+     * batches in flight the completion queue holds far more than pckt_count */
+    rcvd = xsk_ring_cons__peek(&sp->xsk_info->umem->cq, sp->umem_frame_count, &completion_idx);
     if (rcvd > 0) {
         xsk_ring_cons__release(&sp->xsk_info->umem->cq, rcvd);
         sp->xsk_info->outstanding_tx -= rcvd;

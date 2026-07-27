@@ -608,16 +608,29 @@ TRY_SEND_AGAIN:
         xsk_ring_prod__submit(&(sp->xsk_info->tx), sp->pckt_count); // submit all packets at once
         sp->xsk_info->ring_stats.tx_npkts += sp->pckt_count;
         sp->xsk_info->outstanding_tx += sp->pckt_count;
+        sp->sent += sp->pckt_count;
 
-        /* drain the batch, but don't spin here forever if it never completes */
+        /* Reap whatever the kernel has finished, without blocking. */
+        if (complete_tx_only(sp) < 0) {
+            sp->sent -= sp->pckt_count;
+            sp->failed += sp->pckt_count;
+            return -1;
+        }
+
+        /*
+         * Only wait when the next batch would land on a umem frame that is
+         * still in flight. Everything up to that point pipelines: the kernel
+         * transmits one batch while we prepare the next, instead of the send
+         * path stalling on a full completion round-trip every time (#1084).
+         */
         gettimeofday(&last_progress, NULL);
-        while (sp->xsk_info->outstanding_tx != 0) {
+        while (sp->xsk_info->outstanding_tx + sp->batch_size > sp->umem_frame_count) {
             if (xsk_wait_for_tx_progress(sp, &last_progress) < 0) {
+                sp->sent -= sp->pckt_count;
                 sp->failed += sp->pckt_count;
                 return -1;
             }
         }
-        sp->sent += sp->pckt_count;
     }
 #endif
     break;
@@ -1048,6 +1061,29 @@ sendpacket_flush(sendpacket_t *sp)
 void
 sendpacket_drain(sendpacket_t *sp)
 {
+#ifdef HAVE_LIBXDP
+    if (sp != NULL && sp->handle_type == SP_TYPE_LIBXDP) {
+        struct timeval last_progress;
+
+        /* Sends are pipelined now, so at the end of the replay there is
+         * normally still a tail in flight. Wait for it before the statistics
+         * are read, or "Successful packets" would count packets the kernel had
+         * not finished with (#1084). */
+        gettimeofday(&last_progress, NULL);
+        while (sp->xsk_info->outstanding_tx != 0) {
+            if (xsk_wait_for_tx_progress(sp, &last_progress) < 0) {
+                warnx("%s: %u packets were still queued in the AF_XDP TX ring and never sent",
+                      sp->device,
+                      sp->xsk_info->outstanding_tx);
+                sp->sent -= sp->xsk_info->outstanding_tx;
+                sp->failed += sp->xsk_info->outstanding_tx;
+                break;
+            }
+        }
+        return;
+    }
+#endif
+
 #if defined HAVE_PF_PACKET && defined HAVE_TX_RING
     unsigned int pending;
     COUNTER bytes = 0;
@@ -2119,6 +2155,7 @@ sendpacket_open_xsk(const char *device, char *errbuf, void *arg)
     sp->xsk_info = xsk_info;
     sp->umem_info = umem_info;
     sp->frame_size = frame_size;
+    sp->umem_frame_count = (unsigned int)nb_of_frames;
     sp->tx_size = nb_of_tx_queue_desc;
     return sp;
 }

@@ -1,4 +1,10 @@
 07/24/2026 Version 4.6.0-beta3
+    - xdp: pipeline AF_XDP sends by spreading packets over the whole umem instead of recycling the
+      first batch_size frames (#1084) - the send path no longer waits for each batch to complete
+      before preparing the next packet, only when the next batch would reuse a frame still in
+      flight. The umem is 4096 frames whether used or not, so this costs no extra memory; at a
+      batch of 64 only 1.5%% of it was being used. End-of-replay draining now covers AF_XDP too,
+      so the reported counts describe what actually reached the wire
     - xdp: batch AF_XDP sends 64 deep by default when replaying at top speed (#1084) - the send
       path waits for each batch to complete before preparing the next packet, so a batch of one
       costs a full TX completion round-trip per packet: ~13k pps on an e1000 against ~254k at 64.

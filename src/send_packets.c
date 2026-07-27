@@ -1419,8 +1419,16 @@ void
 fill_umem_with_data_and_set_xdp_desc(sendpacket_t *sp, int tx_idx, COUNTER umem_index, u_char *pktdata, int len)
 {
     check_packet_fits_in_umem_frame(sp, len);
-    COUNTER umem_index_mod = (umem_index % sp->batch_size) * sp->frame_size; // packets are sent in batch, after each
-                                                                             // batch umem memory is reusable
+    /*
+     * Spread packets over the whole umem rather than recycling the first
+     * batch_size frames. Indexing modulo the batch meant a second batch would
+     * overwrite the buffers of the first while it was still in flight, which
+     * is why the send path had to block for every batch to complete before
+     * preparing the next packet - a full TX completion round-trip per batch
+     * (#1084). The umem is 4096 frames whether or not they get used, so this
+     * costs nothing and lifts the in-flight ceiling from batch_size to 4096.
+     */
+    COUNTER umem_index_mod = (umem_index % sp->umem_frame_count) * sp->frame_size;
     gen_eth_frame(sp->umem_info, umem_index_mod, pktdata, len);
     struct xdp_desc *xdp_desc = xsk_ring_prod__tx_desc(&(sp->xsk_info->tx), tx_idx);
     xdp_desc->addr = (COUNTER)(umem_index_mod);
