@@ -1,4 +1,8 @@
 07/24/2026 Version 4.6.0-beta3
+    - xdp: fix --xdp-batch-size collapsing throughput (#1084) - a full batch of TX descriptors was
+      reserved but only the filled ones submitted, so libxdp cached producer index crept ahead on
+      every short batch until the ring looked full; --xdp-batch-size=64 against a 179-packet pcap
+      ran at 120 pps, now ~685k. Unused reservations are handed back
     - xdp: fix --xdp delivering only the first --loop iteration and then wedging (#1082) - the TX
       ring's cached producer/consumer indices were zeroed between loops, desynchronising them from
       the kernel's and stranding every later descriptor; libxdp maintains them itself

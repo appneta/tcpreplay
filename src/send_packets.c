@@ -1467,6 +1467,18 @@ prepare_remaining_elements_of_batch(tcpreplay_t *ctx,
     if (pckt_count < sp->batch_size) {
         // No more packets to read, it is essential for cached packet processing
         *read_next_packet = false;
+
+        /*
+         * The caller reserved a full batch of TX descriptors but the pcap ran
+         * out first, and only pckt_count of them get submitted. Hand the rest
+         * back: reserve() has already advanced libxdp's cached producer past
+         * them, so without this the cached index creeps ahead of the real one
+         * by the shortfall on every short batch until the ring looks
+         * permanently full. With --xdp-batch-size=64 and a 179-packet pcap
+         * that leaked 13 descriptors a loop and collapsed throughput to
+         * ~120 pps (#1084).
+         */
+        tcpr_xsk_prod_cancel(&(sp->xsk_info->tx), sp->batch_size - pckt_count);
     }
     sp->pckt_count = pckt_count;
     dbgx(2,

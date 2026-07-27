@@ -292,6 +292,22 @@ struct xsk_socket_info *create_xsk_socket(struct xsk_umem_info *umem,
                                           u_int32_t queue_id,
                                           __u32 xdp_flags,
                                           char *errbuf);
+/**
+ * Give back TX descriptors reserved but not used.
+ *
+ * libxdp exposes xsk_ring_cons__cancel() but no producer equivalent, so this
+ * is the mirror image of it: xsk_ring_prod__reserve() advanced cached_prod by
+ * the whole batch, while xsk_ring_prod__submit() advances the *real* producer
+ * by however many were actually filled. Undo exactly the difference, or
+ * cached_prod creeps ahead of the producer on every short batch until the ring
+ * looks permanently full (#1084).
+ */
+static inline void
+tcpr_xsk_prod_cancel(struct xsk_ring_prod *prod, __u32 nb)
+{
+    prod->cached_prod -= nb;
+}
+
 static inline void
 gen_eth_frame(struct xsk_umem_info *umem, u_int64_t addr, u_char *pkt_data, COUNTER pkt_size)
 {
