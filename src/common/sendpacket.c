@@ -1905,10 +1905,10 @@ sendpacket_is_raw_ip(sendpacket_t *sp)
  * users who need it - which is how "XDP mode not supported" ended up being
  * printed straight at people in the first place.
  */
-/* NOLINTNEXTLINE - must be file scope and mutable: neither libbpf_set_print()
- * nor libxdp_set_print() hands the callback a user-data pointer, so there is
- * nowhere else to keep this */
-static char sendpacket_xdp_last_error[SENDPACKET_ERRBUF_SIZE];
+/* Must be file scope and mutable: neither libbpf_set_print() nor
+ * libxdp_set_print() hands the callback a user-data pointer, so there is
+ * nowhere else to keep this. */
+static char sendpacket_xdp_last_error[SENDPACKET_ERRBUF_SIZE]; /* NOLINT */
 
 typedef enum { XDP_LOG_LIBBPF, XDP_LOG_LIBXDP } xdp_log_source_t;
 
