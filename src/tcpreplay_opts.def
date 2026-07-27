@@ -763,6 +763,37 @@ EOText;
 };
 
 flag = {
+    ifdef       = HAVE_LIBXDP;
+    name        = xdp-queue;
+    flags-must  = xdp;
+    arg-type    = number;
+    arg-range   = "0->4095";
+    descrip     = "Which of the adapter's queues to bind the AF_XDP socket to";
+    arg-default = 0;
+    doc         = <<- EOText
+An AF_XDP socket is bound to a single hardware queue. Queue 0 is used by
+default; on a multi-queue adapter you may need a different one, since the
+queue must exist on the adapter and traffic steering may not use queue 0.
+If the queue does not exist the socket cannot be created.
+EOText;
+};
+
+flag = {
+    ifdef       = HAVE_LIBXDP;
+    name        = xdp-no-fallback;
+    flags-must  = xdp;
+    descrip     = "Fail instead of falling back when AF_XDP is unavailable";
+    doc         = <<- EOText
+By default, if an AF_XDP socket cannot be set up on the interface - the
+driver has no XDP support at all, or the requested queue does not exist -
+tcpreplay warns and replays using its default injection method instead of
+failing. Use this to make that case a hard error, which is what you want
+when benchmarking: a silent change of injection method would change what is
+being measured.
+EOText;
+};
+
+flag = {
     ifdef       = HAVE_LIBURING;
     name        = io-uring;
     descrip     = "Send packets asynchronously via Linux io_uring";

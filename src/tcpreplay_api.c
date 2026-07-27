@@ -283,6 +283,8 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
     if (HAVE_OPT(XDP)) {
 #ifdef HAVE_LIBXDP
         options->xdp = 1;
+        options->xdp_queue = (uint32_t)OPT_VALUE_XDP_QUEUE;
+        options->xdp_no_fallback = HAVE_OPT(XDP_NO_FALLBACK) ? true : false;
         ctx->sp_type = SP_TYPE_LIBXDP;
 #else
          err(-1, "--xdp feature was not compiled in. See INSTALL.");
@@ -1247,13 +1249,17 @@ tcpreplay_replay(tcpreplay_t *ctx)
                     packet_stats(&ctx->stats);
                 }
             }
-#ifdef HAVE_LIBXDP
-            sendpacket_t *sp = ctx->intf1;
-            if (sp->handle_type == SP_TYPE_LIBXDP) {
-                sp->xsk_info->tx.cached_prod = 0;
-                sp->xsk_info->tx.cached_cons = sp->tx_size;
-            }
-#endif
+            /*
+             * Nothing to reset between loops. The AF_XDP TX ring's cached
+             * producer/consumer indices used to be reached into and zeroed
+             * here, which desynchronised them from the kernel's real indices
+             * the moment the first loop had queued anything: reserve() then
+             * handed out descriptors the kernel had already consumed and no
+             * completion ever came back, so --xdp with --loop > 1 delivered
+             * exactly one pass through the pcap and then wedged (#1082).
+             * libxdp maintains those indices itself through
+             * reserve/submit/peek/release.
+             */
         }
     } else {
         while (!ctx->abort) { /* loop forever unless user aborts */

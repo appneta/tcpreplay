@@ -157,6 +157,8 @@ typedef struct tcpreplay_opt_s {
 
 #ifdef HAVE_LIBXDP
     int xdp;
+    uint32_t xdp_queue;   /* which adapter queue to bind the AF_XDP socket to */
+    bool xdp_no_fallback; /* fail rather than fall back to the default injector */
 #endif
 
 #ifdef HAVE_LIBURING

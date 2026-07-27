@@ -1,4 +1,12 @@
 07/24/2026 Version 4.6.0-beta3
+    - xdp: fix --xdp delivering only the first --loop iteration and then wedging (#1082) - the TX
+      ring's cached producer/consumer indices were zeroed between loops, desynchronising them from
+      the kernel's and stranding every later descriptor; libxdp maintains them itself
+    - xdp: add --xdp-queue to select which adapter queue the AF_XDP socket binds to, instead of
+      always using queue 0 (#1082)
+    - xdp: fall back to the default injection method, with a warning, when AF_XDP cannot be set up
+      on the adapter, rather than failing outright; --xdp-no-fallback restores the hard error for
+      benchmarking, where a silent change of injector would change what is measured (#1082)
     - txring: stop truncating jumbo frames to 4096 bytes (#1079) - txring_mkreq() grew the block
       by whole pages until an MTU-sized frame fit, then divided tp_frame_size by that page count,
       putting it straight back to one page; a 9000-byte MTU therefore got 4096-byte frames. The

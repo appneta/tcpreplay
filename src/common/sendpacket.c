@@ -49,6 +49,9 @@
 #include "defines.h"
 #include "config.h"
 #include "common.h"
+#ifdef HAVE_LIBXDP
+#include "tcpreplay_api.h" /* tcpreplay_t, for the AF_XDP queue/fallback options */
+#endif
 #include <errno.h>
 #include <net/if.h>
 #include <stdarg.h>
@@ -261,7 +264,7 @@ static struct tcpr_ether_addr *sendpacket_get_hwaddr_pcap(sendpacket_t *) _U_;
 #endif
 #ifdef HAVE_LIBXDP
 #include <sys/mman.h>
-static sendpacket_t *sendpacket_open_xsk(const char *, char *) _U_;
+static sendpacket_t *sendpacket_open_xsk(const char *, char *, void *) _U_;
 static struct tcpr_ether_addr *sendpacket_get_hwaddr_libxdp(sendpacket_t *);
 #endif
 #if defined HAVE_LIBXDP && !defined INJECT_METHOD
@@ -737,6 +740,42 @@ sendpacket_open(const char *device,
             sp = sendpacket_open_tuntap(device, errbuf);
 #endif
         } else {
+#ifdef HAVE_LIBXDP
+            /*
+             * AF_XDP is tried ahead of the chain below rather than inside it,
+             * because it is the one method that may legitimately fail and hand
+             * the replay on to something else: plenty of adapters have no XDP
+             * support at all, and the socket also fails if the requested queue
+             * isn't one the adapter owns. Say loudly what happened and fall
+             * through to the default injector, unless the caller asked for a
+             * hard failure - which is what benchmarking wants, since silently
+             * changing the injection method changes what is being measured
+             * (#1082).
+             */
+            if (sendpacket_type == SP_TYPE_LIBXDP) {
+                sp = sendpacket_open_xsk(device, errbuf, arg);
+                if (sp == NULL) {
+                    tcpreplay_t *xdp_ctx = (tcpreplay_t *)arg;
+
+                    if (xdp_ctx != NULL && xdp_ctx->options->xdp_no_fallback) {
+                        errx(-1,
+                             "failed to open device %s: %s. Replay without --xdp, or drop "
+                             "--xdp-no-fallback to fall back to the default injection method "
+                             "automatically.",
+                             device,
+                             errbuf);
+                    }
+
+                    warnx("%s. Falling back to the default injection method; pass "
+                          "--xdp-no-fallback to make this a hard error instead.",
+                          errbuf);
+                    sendpacket_type = SP_TYPE_NONE;
+                }
+            }
+
+            if (sp == NULL)
+#endif
+            {
 #if defined HAVE_PF_RING_PCAP && (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
             /*
              * "zc:<ifname>"-style device names are PF_RING ZC's own virtual
@@ -755,11 +794,6 @@ sendpacket_open(const char *device,
 #ifdef HAVE_NETMAP
             if (sendpacket_type == SP_TYPE_NETMAP)
                 sp = (sendpacket_t *)sendpacket_open_netmap(device, errbuf, arg);
-            else
-#endif
-#ifdef HAVE_LIBXDP
-            if (sendpacket_type == SP_TYPE_LIBXDP)
-                sp = sendpacket_open_xsk(device, errbuf);
             else
 #endif
 #ifdef HAVE_LIBURING
@@ -785,6 +819,7 @@ sendpacket_open(const char *device,
 #else
 #error "No defined packet injection method for sendpacket_open()"
 #endif
+            }
         }
     }
 
@@ -1986,8 +2021,9 @@ xsk_configure_socket(struct xsk_umem_info *umem, struct xsk_socket_config *cfg, 
 }
 
 static sendpacket_t *
-sendpacket_open_xsk(const char *device, char *errbuf)
+sendpacket_open_xsk(const char *device, char *errbuf, void *arg)
 {
+    tcpreplay_t *ctx = (tcpreplay_t *)arg;
     sendpacket_t *sp;
 
     assert(device);
@@ -2003,7 +2039,7 @@ sendpacket_open_xsk(const char *device, char *errbuf)
     int nb_of_fill_queue_desc = 4096;
     int nb_of_tx_queue_desc = 4096;
     int nb_of_rx_queue_desc = 4096;
-    u_int32_t queue_id = 0;
+    u_int32_t queue_id = (ctx != NULL) ? ctx->options->xdp_queue : 0;
     struct xsk_umem_info *umem_info = NULL;
     struct xsk_socket_info *xsk_info = NULL;
     unsigned int mode_idx = 0;
@@ -2069,10 +2105,8 @@ sendpacket_open_xsk(const char *device, char *errbuf)
             strlcat(errbuf, " - ", SENDPACKET_ERRBUF_SIZE);
             strlcat(errbuf, sendpacket_xdp_last_error, SENDPACKET_ERRBUF_SIZE);
         }
-        strlcat(errbuf,
-                ". This adapter cannot be driven with --xdp; replay without it to use the "
-                "default injection method.",
-                SENDPACKET_ERRBUF_SIZE);
+        /* the caller decides what to do about it, and says so - don't
+         * pre-empt that here with advice that may not apply */
         return NULL;
     }
 
@@ -2147,7 +2181,7 @@ create_xsk_socket(struct xsk_umem_info *umem_info,
      * one (#956).
      */
     socket_config->libbpf_flags = 0;
-    socket_config->bind_flags = 0;
+    socket_config->bind_flags = XDP_USE_NEED_WAKEUP;
     socket_config->xdp_flags = xdp_flags;
 
     xsk_info = xsk_configure_socket(umem_info, socket_config, queue_id, device);
