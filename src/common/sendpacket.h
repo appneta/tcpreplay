@@ -310,7 +310,7 @@ gen_eth_frame(struct xsk_umem_info *umem, u_int64_t addr, u_char *pkt_data, COUN
 static inline int
 kick_tx(sendpacket_t *sp)
 {
-    int ret = sendto(xsk_socket__fd(sp->xsk_info->xsk), NULL, 0, MSG_DONTWAIT, NULL, 0);
+    ssize_t ret = sendto(xsk_socket__fd(sp->xsk_info->xsk), NULL, 0, MSG_DONTWAIT, NULL, 0);
 
     if (ret >= 0 || errno == ENOBUFS || errno == EAGAIN || errno == EBUSY || errno == ENETDOWN) {
         return 0;
@@ -337,7 +337,7 @@ static inline int
 complete_tx_only(sendpacket_t *sp)
 {
     u_int32_t completion_idx = 0;
-    unsigned int rcvd;
+    unsigned int rcvd = 0;
 
     if (sp->xsk_info->outstanding_tx == 0) {
         return 0;
@@ -367,6 +367,7 @@ complete_tx_only(sendpacket_t *sp)
  * an abort check (#1080).
  */
 #define XSK_TX_STALL_TIMEOUT_SEC 2
+#define XSK_USEC_PER_SEC 1000000L
 
 /**
  * Wait for the TX ring to make progress, giving up rather than spinning
@@ -395,8 +396,8 @@ xsk_wait_for_tx_progress(sendpacket_t *sp, struct timeval *since)
     }
 
     gettimeofday(&now, NULL);
-    if ((now.tv_sec - since->tv_sec) * 1000000L + (now.tv_usec - since->tv_usec) >=
-        XSK_TX_STALL_TIMEOUT_SEC * 1000000L) {
+    if ((now.tv_sec - since->tv_sec) * XSK_USEC_PER_SEC + (now.tv_usec - since->tv_usec) >=
+        XSK_TX_STALL_TIMEOUT_SEC * XSK_USEC_PER_SEC) {
         sendpacket_seterr(sp,
                           "AF_XDP TX ring on %s stalled for %d seconds with %u packets outstanding - the "
                           "driver accepted the socket but is not transmitting. Replay without --xdp.",

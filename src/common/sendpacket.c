@@ -1905,11 +1905,17 @@ sendpacket_is_raw_ip(sendpacket_t *sp)
  * users who need it - which is how "XDP mode not supported" ended up being
  * printed straight at people in the first place.
  */
+/* NOLINTNEXTLINE - must be file scope and mutable: neither libbpf_set_print()
+ * nor libxdp_set_print() hands the callback a user-data pointer, so there is
+ * nowhere else to keep this */
 static char sendpacket_xdp_last_error[SENDPACKET_ERRBUF_SIZE];
 
+typedef enum { XDP_LOG_LIBBPF, XDP_LOG_LIBXDP } xdp_log_source_t;
+
 static void
-sendpacket_xdp_record(const char *lib, const char *format, va_list args)
+sendpacket_xdp_record(xdp_log_source_t source, const char *format, va_list args)
 {
+    const char *lib = (source == XDP_LOG_LIBXDP) ? "libxdp" : "libbpf";
     char msg[SENDPACKET_ERRBUF_SIZE];
 
     vsnprintf(msg, sizeof(msg), format, args);
@@ -1924,7 +1930,11 @@ sendpacket_xdp_record(const char *lib, const char *format, va_list args)
     if (strncmp(msg, lib, strlen(lib)) == 0) {
         strlcpy(sendpacket_xdp_last_error, msg, sizeof(sendpacket_xdp_last_error));
     } else {
-        snprintf(sendpacket_xdp_last_error, sizeof(sendpacket_xdp_last_error), "%s: %s", lib, msg);
+        /* strl* rather than one snprintf("%s: %s"): both buffers are
+         * SENDPACKET_ERRBUF_SIZE, which -Wformat-truncation rightly objects to */
+        strlcpy(sendpacket_xdp_last_error, lib, sizeof(sendpacket_xdp_last_error));
+        strlcat(sendpacket_xdp_last_error, ": ", sizeof(sendpacket_xdp_last_error));
+        strlcat(sendpacket_xdp_last_error, msg, sizeof(sendpacket_xdp_last_error));
     }
 
     dbgx(1, "%s", sendpacket_xdp_last_error);
@@ -1934,7 +1944,7 @@ static int
 sendpacket_libbpf_print(enum libbpf_print_level level, const char *format, va_list args)
 {
     if (level == LIBBPF_WARN) {
-        sendpacket_xdp_record("libbpf", format, args);
+        sendpacket_xdp_record(XDP_LOG_LIBBPF, format, args);
     }
 
     return 0;
@@ -1948,7 +1958,7 @@ static int
 sendpacket_libxdp_print(enum libxdp_print_level level, const char *format, va_list args)
 {
     if (level == LIBXDP_WARN) {
-        sendpacket_xdp_record("libxdp", format, args);
+        sendpacket_xdp_record(XDP_LOG_LIBXDP, format, args);
     }
 
     return 0;
@@ -1996,7 +2006,7 @@ sendpacket_open_xsk(const char *device, char *errbuf)
     u_int32_t queue_id = 0;
     struct xsk_umem_info *umem_info = NULL;
     struct xsk_socket_info *xsk_info = NULL;
-    unsigned int i;
+    unsigned int mode_idx = 0;
 
     /*
      * AF_XDP runs either in the driver (native) or in the generic/SKB path.
@@ -2016,7 +2026,7 @@ sendpacket_open_xsk(const char *device, char *errbuf)
         const char *name;
     } xdp_modes[] = {{XDP_FLAGS_DRV_MODE, "native"}, {XDP_FLAGS_SKB_MODE, "generic (SKB)"}};
 
-    for (i = 0; i < sizeof(xdp_modes) / sizeof(xdp_modes[0]); i++) {
+    for (mode_idx = 0; mode_idx < sizeof(xdp_modes) / sizeof(xdp_modes[0]); mode_idx++) {
         umem_info = create_umem_area(nb_of_frames, frame_size, nb_of_completion_queue_desc, nb_of_fill_queue_desc);
         if (umem_info == NULL) {
             snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "unable to create the AF_XDP UMEM area for %s", device);
@@ -2028,11 +2038,11 @@ sendpacket_open_xsk(const char *device, char *errbuf)
                                      nb_of_rx_queue_desc,
                                      device,
                                      queue_id,
-                                     xdp_modes[i].flags,
+                                     xdp_modes[mode_idx].flags,
                                      errbuf);
         if (xsk_info != NULL) {
-            dbgx(1, "sendpacket: AF_XDP socket on %s bound in %s mode", device, xdp_modes[i].name);
-            if (xdp_modes[i].flags == XDP_FLAGS_SKB_MODE) {
+            dbgx(1, "sendpacket: AF_XDP socket on %s bound in %s mode", device, xdp_modes[mode_idx].name);
+            if (xdp_modes[mode_idx].flags == XDP_FLAGS_SKB_MODE) {
                 notice("%s has no native XDP support - using generic (SKB) mode, which is slower "
                        "than a driver that implements XDP (ixgbe, i40e, ice, mlx5, virtio_net, veth, ...).",
                        device);
@@ -2040,7 +2050,7 @@ sendpacket_open_xsk(const char *device, char *errbuf)
             break;
         }
 
-        dbgx(1, "sendpacket: AF_XDP %s mode unavailable on %s: %s", xdp_modes[i].name, device, errbuf);
+        dbgx(1, "sendpacket: AF_XDP %s mode unavailable on %s: %s", xdp_modes[mode_idx].name, device, errbuf);
         xsk_umem__delete(umem_info->umem);
         safe_free(umem_info->buffer);
         safe_free(umem_info);
@@ -2048,14 +2058,21 @@ sendpacket_open_xsk(const char *device, char *errbuf)
     }
 
     if (xsk_info == NULL) {
+        /* built with strl* rather than one snprintf: the recorded libxdp
+         * message is itself SENDPACKET_ERRBUF_SIZE, which -Wformat-truncation
+         * rightly objects to being formatted into a buffer of the same size */
         snprintf(errbuf,
                  SENDPACKET_ERRBUF_SIZE,
-                 "unable to set up an AF_XDP socket on %s in either native or generic mode%s%s. "
-                 "This adapter cannot be driven with --xdp; replay without it to use the default "
-                 "injection method.",
-                 device,
-                 sendpacket_xdp_last_error[0] != '\0' ? " - " : "",
-                 sendpacket_xdp_last_error);
+                 "unable to set up an AF_XDP socket on %s in either native or generic mode",
+                 device);
+        if (sendpacket_xdp_last_error[0] != '\0') {
+            strlcat(errbuf, " - ", SENDPACKET_ERRBUF_SIZE);
+            strlcat(errbuf, sendpacket_xdp_last_error, SENDPACKET_ERRBUF_SIZE);
+        }
+        strlcat(errbuf,
+                ". This adapter cannot be driven with --xdp; replay without it to use the "
+                "default injection method.",
+                SENDPACKET_ERRBUF_SIZE);
         return NULL;
     }
 
