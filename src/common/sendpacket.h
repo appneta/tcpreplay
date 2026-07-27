@@ -111,8 +111,10 @@ union sendpacket_handle {
 
 #ifdef HAVE_LIBXDP
 #include <errno.h>
-#include <stdlib.h>
+#include <linux/if_link.h> /* XDP_FLAGS_DRV_MODE / XDP_FLAGS_SKB_MODE */
 #include <linux/if_xdp.h>
+#include <stdlib.h>
+#include <xdp/libxdp.h>
 #include <xdp/xsk.h>
 
 struct xsk_ring_stats {
@@ -276,6 +278,10 @@ struct sendpacket_s {
 };
 typedef struct sendpacket_s sendpacket_t;
 
+/* declared here rather than kept static in sendpacket.c so the AF_XDP inline
+ * helpers below can report a failure instead of exiting outright (#1080) */
+void sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...);
+
 #ifdef HAVE_LIBXDP
 struct xsk_umem_info *
 create_umem_area(int nb_of_frames, int frame_size, int nb_of_completion_queue_descs, int nb_of_fill_queue_descs);
@@ -284,6 +290,7 @@ struct xsk_socket_info *create_xsk_socket(struct xsk_umem_info *umem,
                                           int nb_of_rx_queue_desc,
                                           const char *device,
                                           u_int32_t queue_id,
+                                          __u32 xdp_flags,
                                           char *errbuf);
 static inline void
 gen_eth_frame(struct xsk_umem_info *umem, u_int64_t addr, u_char *pkt_data, COUNTER pkt_size)
@@ -291,39 +298,118 @@ gen_eth_frame(struct xsk_umem_info *umem, u_int64_t addr, u_char *pkt_data, COUN
     memcpy(xsk_umem__get_data(umem->buffer, addr), pkt_data, pkt_size);
 }
 
-static inline void
-kick_tx(struct xsk_socket_info *xsk)
+/**
+ * Nudge the kernel into draining the TX ring.  Returns 0 when the send is
+ * simply not ready yet (the caller should keep waiting), or -1 on a real
+ * error, with the reason recorded on the handle.
+ *
+ * This used to exit() from here, deep inside the send path - and on EINVAL it
+ * exited with status 0, so a fatal error looked to any script or CI job like a
+ * successful run, with no statistics and no cleanup (#1080).
+ */
+static inline int
+kick_tx(sendpacket_t *sp)
 {
-    int ret = sendto(xsk_socket__fd(xsk->xsk), NULL, 0, MSG_DONTWAIT, NULL, 0);
+    int ret = sendto(xsk_socket__fd(sp->xsk_info->xsk), NULL, 0, MSG_DONTWAIT, NULL, 0);
+
     if (ret >= 0 || errno == ENOBUFS || errno == EAGAIN || errno == EBUSY || errno == ENETDOWN) {
-        return;
+        return 0;
     }
+
     if (errno == EINVAL) {
-        printf("%s\n", "Send error: XDP is either not supported by this underlying network driver, or it has a bug.\n"
-                          "Try upgrading to a newer kernel version and/or network driver and try again.");
-        exit(0);
+        sendpacket_seterr(sp,
+                          "AF_XDP send on %s failed: the driver does not support XDP transmit the way "
+                          "tcpreplay uses it, or has a bug. Try a newer kernel/driver, or replay "
+                          "without --xdp.",
+                          sp->device);
     } else {
-        printf("%s %s\n", "XDP packet sending exited with error!", strerror(errno));
-        exit(1);
+        sendpacket_seterr(sp, "AF_XDP send on %s failed: %s", sp->device, strerror(errno));
     }
+
+    return -1;
 }
 
-static inline void
+/**
+ * Reap whatever the kernel has finished sending.  Returns the number of
+ * completions collected, or -1 if the socket has failed.
+ */
+static inline int
 complete_tx_only(sendpacket_t *sp)
 {
     u_int32_t completion_idx = 0;
+    unsigned int rcvd;
+
     if (sp->xsk_info->outstanding_tx == 0) {
-        return;
+        return 0;
     }
+
     if (xsk_ring_prod__needs_wakeup(&(sp->xsk_info->tx))) {
         sp->xsk_info->app_stats.tx_wakeup_sendtos++;
-        kick_tx(sp->xsk_info);
+        if (kick_tx(sp) < 0) {
+            return -1;
+        }
     }
-    unsigned int rcvd = xsk_ring_cons__peek(&sp->xsk_info->umem->cq, sp->pckt_count, &completion_idx);
+
+    rcvd = xsk_ring_cons__peek(&sp->xsk_info->umem->cq, sp->pckt_count, &completion_idx);
     if (rcvd > 0) {
         xsk_ring_cons__release(&sp->xsk_info->umem->cq, rcvd);
         sp->xsk_info->outstanding_tx -= rcvd;
     }
+
+    return (int)rcvd;
+}
+
+/*
+ * How long to keep waiting on an AF_XDP TX ring that isn't completing anything
+ * before calling it dead.  A driver that binds an AF_XDP socket but never
+ * actually transmits used to wedge tcpreplay in an unkillable 100% CPU spin -
+ * both the reserve loop and the drain loop retried forever, without so much as
+ * an abort check (#1080).
+ */
+#define XSK_TX_STALL_TIMEOUT_SEC 2
+
+/**
+ * Wait for the TX ring to make progress, giving up rather than spinning
+ * forever.  "progress" is any completion at all; the deadline only starts
+ * biting once nothing has come back for XSK_TX_STALL_TIMEOUT_SEC.  Returns 0
+ * on progress, or -1 if the ring is stalled, aborted or failed.
+ */
+static inline int
+xsk_wait_for_tx_progress(sendpacket_t *sp, struct timeval *since)
+{
+    struct timeval now;
+    int rcvd = complete_tx_only(sp);
+
+    if (rcvd < 0) {
+        return -1;
+    }
+
+    if (rcvd > 0) {
+        gettimeofday(since, NULL); /* progress: reset the deadline */
+        return 0;
+    }
+
+    if (sp->abort) {
+        sendpacket_seterr(sp, "User abort");
+        return -1;
+    }
+
+    gettimeofday(&now, NULL);
+    if ((now.tv_sec - since->tv_sec) * 1000000L + (now.tv_usec - since->tv_usec) >=
+        XSK_TX_STALL_TIMEOUT_SEC * 1000000L) {
+        sendpacket_seterr(sp,
+                          "AF_XDP TX ring on %s stalled for %d seconds with %u packets outstanding - the "
+                          "driver accepted the socket but is not transmitting. Replay without --xdp.",
+                          sp->device,
+                          XSK_TX_STALL_TIMEOUT_SEC,
+                          sp->xsk_info->outstanding_tx);
+        /* a ring that has stopped completing does not start again - stop the
+         * replay rather than repeating this per packet for the whole file */
+        sp->abort = true;
+        return -1;
+    }
+
+    return 0;
 }
 #endif /* HAVE_LIBXDP */
 

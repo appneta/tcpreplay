@@ -288,7 +288,6 @@ static int sendpacket_send_io_uring(sendpacket_t *, const u_char *, size_t);
 #define INJECT_METHOD "io_uring send()"
 #endif
 static sendpacket_t *sendpacket_open_pcap_dump(const char *, char *) _U_;
-static void sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...);
 static sendpacket_t *sendpacket_open_khial(const char *, char *) _U_;
 static struct tcpr_ether_addr *sendpacket_get_hwaddr_khial(sendpacket_t *) _U_;
 
@@ -599,16 +598,26 @@ TRY_SEND_AGAIN:
         break;
     case SP_TYPE_LIBXDP:
 #ifdef HAVE_LIBXDP
+    {
+        struct timeval last_progress;
+
         retcode = len;
         xsk_ring_prod__submit(&(sp->xsk_info->tx), sp->pckt_count); // submit all packets at once
         sp->xsk_info->ring_stats.tx_npkts += sp->pckt_count;
         sp->xsk_info->outstanding_tx += sp->pckt_count;
+
+        /* drain the batch, but don't spin here forever if it never completes */
+        gettimeofday(&last_progress, NULL);
         while (sp->xsk_info->outstanding_tx != 0) {
-            complete_tx_only(sp);
+            if (xsk_wait_for_tx_progress(sp, &last_progress) < 0) {
+                sp->failed += sp->pckt_count;
+                return -1;
+            }
         }
         sp->sent += sp->pckt_count;
+    }
 #endif
-        break;
+    break;
     case SP_TYPE_IO_URING:
 #ifdef HAVE_LIBURING
         retcode = sendpacket_send_io_uring(sp, data, len);
@@ -1074,7 +1083,7 @@ sendpacket_geterr(sendpacket_t *sp)
 /**
  * Set's the error string
  */
-static void
+void
 sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...)
 {
     va_list ap;
@@ -1882,6 +1891,69 @@ sendpacket_is_raw_ip(sendpacket_t *sp)
     return sp->raw_ip;
 }
 #ifdef HAVE_LIBXDP
+/**
+ * Send libbpf's and libxdp's own logging through our debug output instead of
+ * letting it go straight to stderr.  Without this, opening an AF_XDP socket on
+ * a driver without native XDP prints a wall of ELF-section and verifier
+ * chatter over the top of the replay (#1080).  The detail is genuinely useful
+ * when diagnosing an XDP problem, so it is kept at -v rather than discarded.
+ */
+/*
+ * The most recent warning either library emitted.  dbg() output is compiled
+ * out unless the build is --enable-debug, so without keeping this the real
+ * reason an AF_XDP socket could not be set up would be unavailable to the very
+ * users who need it - which is how "XDP mode not supported" ended up being
+ * printed straight at people in the first place.
+ */
+static char sendpacket_xdp_last_error[SENDPACKET_ERRBUF_SIZE];
+
+static void
+sendpacket_xdp_record(const char *lib, const char *format, va_list args)
+{
+    char msg[SENDPACKET_ERRBUF_SIZE];
+
+    vsnprintf(msg, sizeof(msg), format, args);
+
+    /* both libraries newline-terminate; dbgx()/warnx() add their own */
+    msg[strcspn(msg, "\n")] = '\0';
+    if (msg[0] == '\0') {
+        return;
+    }
+
+    /* libbpf already prefixes its own messages; don't say it twice */
+    if (strncmp(msg, lib, strlen(lib)) == 0) {
+        strlcpy(sendpacket_xdp_last_error, msg, sizeof(sendpacket_xdp_last_error));
+    } else {
+        snprintf(sendpacket_xdp_last_error, sizeof(sendpacket_xdp_last_error), "%s: %s", lib, msg);
+    }
+
+    dbgx(1, "%s", sendpacket_xdp_last_error);
+}
+
+static int
+sendpacket_libbpf_print(enum libbpf_print_level level, const char *format, va_list args)
+{
+    if (level == LIBBPF_WARN) {
+        sendpacket_xdp_record("libbpf", format, args);
+    }
+
+    return 0;
+}
+
+/**
+ * libxdp keeps its own logger, separate from libbpf's, so both have to be
+ * redirected or half the noise still lands on stderr.
+ */
+static int
+sendpacket_libxdp_print(enum libxdp_print_level level, const char *format, va_list args)
+{
+    if (level == LIBXDP_WARN) {
+        sendpacket_xdp_record("libxdp", format, args);
+    }
+
+    return 0;
+}
+
 static struct xsk_socket_info *
 xsk_configure_socket(struct xsk_umem_info *umem, struct xsk_socket_config *cfg, int queue_id, const char *device)
 {
@@ -1893,6 +1965,8 @@ xsk_configure_socket(struct xsk_umem_info *umem, struct xsk_socket_config *cfg, 
     xsk->umem = umem;
     ret = xsk_socket__create(&xsk->xsk, device, queue_id, umem->umem, rxr, &xsk->tx, cfg);
     if (ret) {
+        safe_free(xsk);
+        errno = -ret;
         return NULL;
     }
 
@@ -1909,24 +1983,79 @@ sendpacket_open_xsk(const char *device, char *errbuf)
     assert(device);
     assert(errbuf);
 
+    /* before anything can log: keep libbpf/libxdp chatter out of the replay output */
+    libbpf_set_print(sendpacket_libbpf_print);
+    libxdp_set_print(sendpacket_libxdp_print);
+
     int nb_of_frames = 4096;
     int frame_size = 4096;
     int nb_of_completion_queue_desc = 4096;
     int nb_of_fill_queue_desc = 4096;
-    struct xsk_umem_info *umem_info =
-            create_umem_area(nb_of_frames, frame_size, nb_of_completion_queue_desc, nb_of_fill_queue_desc);
-    if (umem_info == NULL) {
-        return NULL;
-    }
-
     int nb_of_tx_queue_desc = 4096;
     int nb_of_rx_queue_desc = 4096;
     u_int32_t queue_id = 0;
-    struct xsk_socket_info *xsk_info =
-            create_xsk_socket(umem_info, nb_of_tx_queue_desc, nb_of_rx_queue_desc, device, queue_id, errbuf);
-    if (xsk_info == NULL) {
+    struct xsk_umem_info *umem_info = NULL;
+    struct xsk_socket_info *xsk_info = NULL;
+    unsigned int i;
+
+    /*
+     * AF_XDP runs either in the driver (native) or in the generic/SKB path.
+     * xsk_socket__create() doesn't choose for us, and with xdp_flags left at 0
+     * the attach is native-only: on a driver without native XDP - e1000,
+     * e1000e, dummy and plenty of others - it just fails, which is why --xdp
+     * worked on some adapters and not others (#1080).
+     *
+     * There is no reliable userspace probe for "does this driver do native
+     * XDP" (bpf_xdp_query_id() answers what is *attached*, not what is
+     * supported), so try native and fall back. The retry has to rebuild the
+     * umem as well: a failed bind leaves the old one attached and reusing it
+     * comes back EBUSY.
+     */
+    static const struct {
+        __u32 flags;
+        const char *name;
+    } xdp_modes[] = {{XDP_FLAGS_DRV_MODE, "native"}, {XDP_FLAGS_SKB_MODE, "generic (SKB)"}};
+
+    for (i = 0; i < sizeof(xdp_modes) / sizeof(xdp_modes[0]); i++) {
+        umem_info = create_umem_area(nb_of_frames, frame_size, nb_of_completion_queue_desc, nb_of_fill_queue_desc);
+        if (umem_info == NULL) {
+            snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "unable to create the AF_XDP UMEM area for %s", device);
+            return NULL;
+        }
+
+        xsk_info = create_xsk_socket(umem_info,
+                                     nb_of_tx_queue_desc,
+                                     nb_of_rx_queue_desc,
+                                     device,
+                                     queue_id,
+                                     xdp_modes[i].flags,
+                                     errbuf);
+        if (xsk_info != NULL) {
+            dbgx(1, "sendpacket: AF_XDP socket on %s bound in %s mode", device, xdp_modes[i].name);
+            if (xdp_modes[i].flags == XDP_FLAGS_SKB_MODE) {
+                notice("%s has no native XDP support - using generic (SKB) mode, which is slower "
+                       "than a driver that implements XDP (ixgbe, i40e, ice, mlx5, virtio_net, veth, ...).",
+                       device);
+            }
+            break;
+        }
+
+        dbgx(1, "sendpacket: AF_XDP %s mode unavailable on %s: %s", xdp_modes[i].name, device, errbuf);
+        xsk_umem__delete(umem_info->umem);
         safe_free(umem_info->buffer);
         safe_free(umem_info);
+        umem_info = NULL;
+    }
+
+    if (xsk_info == NULL) {
+        snprintf(errbuf,
+                 SENDPACKET_ERRBUF_SIZE,
+                 "unable to set up an AF_XDP socket on %s in either native or generic mode%s%s. "
+                 "This adapter cannot be driven with --xdp; replay without it to use the default "
+                 "injection method.",
+                 device,
+                 sendpacket_xdp_last_error[0] != '\0' ? " - " : "",
+                 sendpacket_xdp_last_error);
         return NULL;
     }
 
@@ -1982,6 +2111,7 @@ create_xsk_socket(struct xsk_umem_info *umem_info,
                   int nb_of_rx_queue_desc,
                   const char *device,
                   u_int32_t queue_id,
+                  __u32 xdp_flags,
                   char *errbuf)
 {
     struct xsk_socket_info *xsk_info;
@@ -2000,11 +2130,13 @@ create_xsk_socket(struct xsk_umem_info *umem_info,
      * one (#956).
      */
     socket_config->libbpf_flags = 0;
-    socket_config->bind_flags = 0; // XDP_FLAGS_SKB_MODE (1U << 1) or XDP_FLAGS_DRV_MODE (1U << 2)
+    socket_config->bind_flags = 0;
+    socket_config->xdp_flags = xdp_flags;
+
     xsk_info = xsk_configure_socket(umem_info, socket_config, queue_id, device);
     safe_free(socket_config);
     if (xsk_info == NULL) {
-        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "AF_XDP socket configuration is not successful: %s", strerror(errno));
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "%s", strerror(errno));
         return NULL;
     }
     return xsk_info;

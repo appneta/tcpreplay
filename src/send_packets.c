@@ -579,9 +579,21 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 
 #ifdef HAVE_LIBXDP
         if (sp->handle_type == SP_TYPE_LIBXDP) {
-            /* Reserve frames for the batc h*/
+            struct timeval last_progress;
+
+            /* Reserve frames for the batch - bounded, so a driver that binds an
+             * AF_XDP socket but never transmits fails with a diagnosis instead
+             * of wedging the replay in an unkillable spin (#1080) */
+            gettimeofday(&last_progress, NULL);
             while (xsk_ring_prod__reserve(&(sp->xsk_info->tx), sp->batch_size, &sp->tx_idx) < sp->batch_size) {
-                complete_tx_only(sp);
+                if (xsk_wait_for_tx_progress(sp, &last_progress) < 0) {
+                    warnx("Unable to send packet: %s", sendpacket_geterr(sp));
+                    ctx->abort = true;
+                    break;
+                }
+            }
+            if (ctx->abort) {
+                break;
             }
             /* The first packet is already in memory */
             prepare_first_element_of_batch(ctx, &packetnum, pktdata, pkthdr.len);
@@ -609,6 +621,11 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         if ((options->loss <= 0.0f || rand() > (options->loss / 100.0f) * RAND_MAX) &&
             sendpacket(sp, send_data, send_len, &pkthdr) < (int)send_len) {
             warnx("Unable to send packet: %s", sendpacket_geterr(sp));
+            /* the backend has declared itself unusable (e.g. a stalled AF_XDP
+             * TX ring): stop rather than repeat this for every packet left */
+            if (sp->abort) {
+                ctx->abort = true;
+            }
             continue;
         }
 
@@ -900,6 +917,11 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         if ((options->loss <= 0.0f || rand() > (options->loss / 100.0f) * RAND_MAX) &&
             sendpacket(sp, send_data, send_len, pkthdr_ptr) < (int)send_len) {
             warnx("Unable to send packet: %s", sendpacket_geterr(sp));
+            /* the backend has declared itself unusable (e.g. a stalled AF_XDP
+             * TX ring): stop rather than repeat this for every packet left */
+            if (sp->abort) {
+                ctx->abort = true;
+            }
             continue;
         }
 
