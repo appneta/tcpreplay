@@ -703,7 +703,9 @@ sendpacket_open(const char *device,
                 sendpacket_type_t sendpacket_type _U_,
                 void *arg _U_)
 {
-    sendpacket_t *sp;
+    /* must start NULL: the AF_XDP attempt below leaves it unset when it fails
+     * and the default injector is what decides whether it stays that way */
+    sendpacket_t *sp = NULL;
     struct stat sdata;
 
     assert(device);
