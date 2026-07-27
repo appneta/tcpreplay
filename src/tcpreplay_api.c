@@ -429,7 +429,24 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
             goto out;
         }
 #ifdef HAVE_LIBXDP
-        ctx->intf1->batch_size = OPT_VALUE_XDP_BATCH_SIZE;
+        /*
+         * Batching is what makes AF_XDP fast: the send path waits for each
+         * batch to complete before preparing the next packet, so a batch of
+         * one costs a full TX completion round-trip per packet. On an e1000
+         * that is ~13k pps against ~254k at a batch of 64 (#1084).
+         *
+         * It cannot simply default to 64, though. Pacing is only applied to
+         * the AF_XDP path when batch_size is 1 (see send_packets.c), so a
+         * blanket default would silently stop --pps/--mbps/--multiplier from
+         * pacing anything. Batch only when there is no rate to hold to.
+         */
+        if (HAVE_OPT(XDP_BATCH_SIZE)) {
+            ctx->intf1->batch_size = OPT_VALUE_XDP_BATCH_SIZE;
+        } else if (options->speed.mode == speed_topspeed) {
+            ctx->intf1->batch_size = XDP_TOPSPEED_BATCH_SIZE;
+        } else {
+            ctx->intf1->batch_size = 1;
+        }
 #endif
 #if defined HAVE_NETMAP
         ctx->intf1->netmap_delay = ctx->options->netmap_delay;

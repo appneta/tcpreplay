@@ -1,4 +1,8 @@
 07/24/2026 Version 4.6.0-beta3
+    - xdp: batch AF_XDP sends 64 deep by default when replaying at top speed (#1084) - the send
+      path waits for each batch to complete before preparing the next packet, so a batch of one
+      costs a full TX completion round-trip per packet: ~13k pps on an e1000 against ~254k at 64.
+      Paced replays keep a batch of 1, since --pps/--mbps/--multiplier are only honoured there
     - xdp: fix --xdp-batch-size collapsing throughput (#1084) - a full batch of TX descriptors was
       reserved but only the filled ones submitted, so libxdp cached producer index crept ahead on
       every short batch until the ring looked full; --xdp-batch-size=64 against a 179-packet pcap

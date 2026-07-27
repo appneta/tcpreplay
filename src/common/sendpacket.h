@@ -117,6 +117,10 @@ union sendpacket_handle {
 #include <xdp/libxdp.h>
 #include <xdp/xsk.h>
 
+/* Default AF_XDP batch when replaying at top speed - see the note in
+ * tcpreplay_api.c for why this can't be the default for paced replays. */
+#define XDP_TOPSPEED_BATCH_SIZE 64
+
 struct xsk_ring_stats {
     unsigned long rx_npkts;
     unsigned long tx_npkts;
