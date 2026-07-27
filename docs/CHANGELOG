@@ -1,4 +1,14 @@
 07/24/2026 Version 4.6.0-beta3
+    - xdp: pick the AF_XDP attach mode from what the driver supports instead of assuming native
+      (#1080) - create_xsk_socket() never set xdp_flags, so --xdp only ever worked on adapters
+      with native XDP and simply failed on e1000, e1000e and friends; it now falls back to
+      generic/SKB mode, rebuilding the umem because a failed bind leaves the old one attached
+    - xdp: bound the two TX loops that retried forever with no timeout and no abort check, so a
+      driver that binds an AF_XDP socket but never transmits is reported rather than wedging
+      tcpreplay in an unkillable 100% CPU spin; kick_tx() also called exit(0) - success - on a
+      fatal send error, hiding it from scripts and CI
+    - xdp: route libbpf/libxdp logging through dbg() instead of letting it print over the replay,
+      keeping the last warning so a non-debug build still says why AF_XDP could not be set up
     - configure: require both halves before enabling libxdp/libbpf - AC_CHECK_LIB's default
       action defined HAVE_LIBXDP/HAVE_LIBBPF off a bare link test, but both gate #includes in
       defines.h, so a system with the shared library and no headers compiled --xdp in and then
