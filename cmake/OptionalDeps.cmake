@@ -177,12 +177,16 @@ endif()
 # tcpdump binary (--with-tcpdump → WITH_TCPDUMP)
 # ---------------------------------------------------------------------------
 set(HAVE_TCPDUMP "")
-if(WITH_TCPDUMP)
+if(WITH_TCPDUMP STREQUAL "no")
+    set(TCPDUMP_PATH "")
+elseif(WITH_TCPDUMP)
     set(TCPDUMP_PATH ${WITH_TCPDUMP})
 else()
     find_program(TCPDUMP_PATH tcpdump PATHS /usr/sbin /sbin /usr/local/sbin)
 endif()
-if(TCPDUMP_PATH AND EXISTS ${TCPDUMP_PATH})
+# When cross compiling, WITH_TCPDUMP is a path on the target, which can't
+# be checked for existence on the build machine.
+if(TCPDUMP_PATH AND (EXISTS "${TCPDUMP_PATH}" OR (CMAKE_CROSSCOMPILING AND WITH_TCPDUMP)))
     set(HAVE_TCPDUMP 1)
     message(STATUS "Using tcpdump in ${TCPDUMP_PATH}")
 else()
