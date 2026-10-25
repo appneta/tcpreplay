@@ -47,7 +47,7 @@ tcp_opt_open(int argc, char *argv[])
         opt->opt_data.mss = htons(i);
     } else if (strcasecmp(argv[1], "wscale") == 0) {
         opt->opt_type = TCP_OPT_WSCALE;
-        opt->opt_len = TCP_OPT_LEN + 2;
+        opt->opt_len = TCP_OPT_LEN + 1;
 
         if ((i = (int)strtol(argv[2], NULL, 10)) <= 0 || i > 0xff) {
             warn("wscale <size> must be from 0-255");
