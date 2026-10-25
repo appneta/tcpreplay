@@ -28,6 +28,7 @@
 #   --with-pfring-lib=LIB     -DWITH_PFRING_LIB=LIB
 #   --with-libdnet=DIR        -DWITH_LIBDNET=DIR
 #   --with-tcpdump=FILE       -DWITH_TCPDUMP=FILE
+#   --without-tcpdump         -DWITH_TCPDUMP=no
 #   --with-pcapnav-config=F   -DWITH_PCAPNAV_CONFIG=F
 #   --with-testnic=NIC        -DWITH_TESTNIC=NIC
 #   --with-testnic2=NIC       -DWITH_TESTNIC2=NIC
