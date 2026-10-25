@@ -124,6 +124,10 @@ tcp_chaff_apply(void *d, struct pktq *pktq)
             inet_checksum(eth_type, new->pkt_ip, new->pkt_ip_data - new->pkt_eth_data);
             break;
         case CHAFF_TYPE_PAWS:
+            if (new->pkt_tcp->th_off < 5) {
+                pkt_free(new);
+                continue;
+            }
             /* Delete any existing TCP options. */
             i = (new->pkt_tcp->th_off << 2) - TCP_HDR_LEN;
             new->pkt_tcp->th_off = 5;
