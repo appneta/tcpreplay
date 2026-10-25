@@ -211,7 +211,7 @@ mod_apply(struct pktq *pktq)
 void
 mod_close(void)
 {
-    struct rule *rule;
+    struct rule *rule, *prev;
 
     /*
      * Not using TAILQ_FOREACH_REVERSE: its (field, headname) argument order is
@@ -222,9 +222,12 @@ mod_close(void)
      * TAILQ_PREV/TAILQ_END have a consistent signature everywhere, so iterate
      * with those directly instead.
      */
-    for (rule = TAILQ_LAST(&rules, head); rule != TAILQ_END(&rules); rule = TAILQ_PREV(rule, head, next)) {
+    for (rule = TAILQ_LAST(&rules, head); rule != TAILQ_END(&rules); rule = prev) {
+        /* fetch prev before the rule is unlinked and freed */
+        prev = TAILQ_PREV(rule, head, next);
         if (rule->mod->close != NULL)
             rule->data = rule->mod->close(rule->data);
         TAILQ_REMOVE(&rules, rule, next);
+        free(rule);
     }
 }
