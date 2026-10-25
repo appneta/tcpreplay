@@ -2038,16 +2038,21 @@ dnl ##################################################
 dnl # Check for tcpdump.
 dnl ##################################################
 
+dnl When cross compiling, FILE is a path on the target and can't be tested here.
 tcpdump_path=no
 AC_ARG_WITH(tcpdump,
     AS_HELP_STRING([--with-tcpdump=FILE],[Path to tcpdump binary]),
-    [ if test -x $withval ; then
+    [ if test "x$withval" = xno ; then
+          :
+      elif test "x$withval" != xyes && (test "x$cross_compiling" = xyes || test -x "$withval") ; then
           tcpdump_path=$withval
           AC_MSG_RESULT([Using tcpdump in $tcpdump_path])
       else
           AC_MSG_RESULT([Error: $withval does not exist or is not executable])
       fi ],
-    [ AC_PATH_PROG(tcpdump_path, tcpdump, "no", [$PATH:/usr/sbin:/sbin:/usr/local/sbin]) ])
+    [ if test "x$cross_compiling" != xyes ; then
+          AC_PATH_PROG(tcpdump_path, tcpdump, "no", [$PATH:/usr/sbin:/sbin:/usr/local/sbin])
+      fi ])
 
 
 if test "$tcpdump_path" = "no"; then
