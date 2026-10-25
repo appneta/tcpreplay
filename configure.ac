@@ -718,8 +718,9 @@ if test x$inet_addr = xno ; then
     AC_MSG_ERROR([We need inet_addr.  See bug 26])
 fi
 
-dnl On Haiku fts_*() functions are in libbsd.
-AC_CHECK_FUNC(fts_read,,[AC_CHECK_LIB(bsd, fts_read)])
+dnl On Haiku fts_*() functions are in libbsd, on musl and uClibc in the
+dnl standalone libfts (musl-fts).
+AC_CHECK_FUNC(fts_read,,[AC_CHECK_LIB(bsd, fts_read,,[AC_CHECK_LIB(fts, fts_read)])])
 
 dnl #####################################################
 dnl Checks for tuntap device support
