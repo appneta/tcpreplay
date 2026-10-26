@@ -29,6 +29,8 @@
 
 #define PKT_BUF_LEN (ETH_HDR_LEN + ETH_MTU)
 #define PKT_BUF_ALIGN 2
+/* spare room after the packet for added IP/TCP options (2 x 40 bytes, plus padding) */
+#define PKT_BUF_SLACK 84
 
 struct pkt {
     struct timeval pkt_ts;

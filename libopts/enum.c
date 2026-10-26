@@ -229,7 +229,15 @@ find_name(char const * name, tOptions * pOpts, tOptDesc * pOD,
 char const *
 optionKeywordName(tOptDesc * pOD, unsigned int enum_val)
 {
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#pragma clang diagnostic ignored "-Wdefault-const-init-field-unsafe"
+#endif
     tOptDesc od;
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
     memset(&od, 0, sizeof(od));
     od.optArg.argEnum = enum_val;
 

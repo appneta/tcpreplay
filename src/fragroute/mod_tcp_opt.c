@@ -47,7 +47,7 @@ tcp_opt_open(int argc, char *argv[])
         opt->opt_data.mss = htons(i);
     } else if (strcasecmp(argv[1], "wscale") == 0) {
         opt->opt_type = TCP_OPT_WSCALE;
-        opt->opt_len = TCP_OPT_LEN + 2;
+        opt->opt_len = TCP_OPT_LEN + 1;
 
         if ((i = (int)strtol(argv[2], NULL, 10)) <= 0 || i > 0xff) {
             warn("wscale <size> must be from 0-255");
@@ -68,6 +68,41 @@ tcp_opt_open(int argc, char *argv[])
     return (opt);
 }
 
+/*
+ * ip_add_option() and inet_add_option_6() trust the packet: they read th_off
+ * from whatever follows the IP header and derive the payload length to shift
+ * from it, so a non-TCP packet or a bogus th_off makes that length negative.
+ * Only add options to packets that parsed and carry a TCP header that fits.
+ */
+static int
+tcp_opt_can_add(struct pkt *pkt, uint16_t eth_type)
+{
+    struct tcp_hdr *tcp;
+    size_t avail, thl;
+
+    if (pkt->pkt_ip_data == NULL || pkt->pkt_end < pkt->pkt_ip_data)
+        return 0;
+
+    avail = pkt->pkt_end - pkt->pkt_ip_data;
+    if (avail < TCP_HDR_LEN)
+        return 0;
+
+    tcp = (struct tcp_hdr *)pkt->pkt_ip_data;
+    thl = tcp->th_off << 2;
+    if (thl < TCP_HDR_LEN || thl > avail)
+        return 0;
+
+    if (eth_type == ETH_TYPE_IP) {
+        /* the length libdnet derives the shifted payload from is ip_len */
+        return pkt->pkt_ip->ip_p == IP_PROTO_TCP && ntohs(pkt->pkt_ip->ip_len) >= (pkt->pkt_ip->ip_hl << 2) + thl;
+    } else if (eth_type == ETH_TYPE_IPV6) {
+        /* inet_add_option_6() assumes TCP directly follows the IPv6 header */
+        return pkt->pkt_ip6->ip6_nxt == IP_PROTO_TCP && pkt->pkt_ip_data == (u_char *)pkt->pkt_ip6 + IP6_HDR_LEN &&
+               ntohs(pkt->pkt_ip6->ip6_plen) >= thl;
+    }
+    return 0;
+}
+
 int
 tcp_opt_apply(void *d, struct pktq *pktq)
 {
@@ -76,8 +111,11 @@ tcp_opt_apply(void *d, struct pktq *pktq)
 
     TAILQ_FOREACH(pkt, pktq, pkt_next)
     {
-        size_t len;
+        ssize_t len;
         uint16_t eth_type = htons(pkt->pkt_eth->eth_type);
+
+        if (!tcp_opt_can_add(pkt, eth_type))
+            continue;
 
         len = inet_add_option(eth_type,
                               pkt->pkt_ip,
@@ -89,6 +127,9 @@ tcp_opt_apply(void *d, struct pktq *pktq)
         if (len > 0) {
             pkt->pkt_end += len;
             pkt_decorate(pkt);
+            /* pkt_decorate() leaves pkt_ip_data NULL if the rebuilt packet no longer parses */
+            if (pkt->pkt_ip_data == NULL)
+                continue;
             inet_checksum(eth_type, pkt->pkt_ip, pkt->pkt_end - pkt->pkt_eth_data);
         }
     }
