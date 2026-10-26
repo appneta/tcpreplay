@@ -137,7 +137,7 @@ tcp_chaff_apply(void *d, struct pktq *pktq)
             opt.opt_data.timestamp[1] = 0;
             if ((i = (int)inet_add_option(eth_type,
                                           new->pkt_ip,
-                                          PKT_BUF_LEN - ETH_HDR_LEN,
+                                          new->pkt_buf + new->pkt_buf_size - (u_char *)new->pkt_ip,
                                           IP_PROTO_TCP,
                                           &opt,
                                           opt.opt_len)) < 0) {
@@ -147,6 +147,10 @@ tcp_chaff_apply(void *d, struct pktq *pktq)
             new->pkt_end += i;
             inet_checksum(eth_type, new->pkt_ip, new->pkt_ip_data - new->pkt_eth_data);
             pkt_decorate(new);
+            if (new->pkt_ip_data == NULL) {
+                pkt_free(new);
+                continue;
+            }
             break;
         case CHAFF_TYPE_REXMIT:
             new->pkt_ts.tv_usec = 1;

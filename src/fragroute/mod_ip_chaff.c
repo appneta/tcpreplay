@@ -112,6 +112,7 @@ ip_chaff_apply(void *d, struct pktq *pktq)
                     ip_checksum(new->pkt_ip, new->pkt_ip_data - new->pkt_eth_data);
                 }
             } else if (eth_type == ETH_TYPE_IPV6) {
+                pkt_free(new);
                 continue;
             }
             /* fall through */
