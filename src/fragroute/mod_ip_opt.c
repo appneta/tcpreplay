@@ -75,7 +75,7 @@ ip_opt_apply(void *d, struct pktq *pktq)
 {
     struct ip_opt *opt = (struct ip_opt *)d;
     struct pkt *pkt;
-    size_t len;
+    ssize_t len;
 
     TAILQ_FOREACH(pkt, pktq, pkt_next)
     {
