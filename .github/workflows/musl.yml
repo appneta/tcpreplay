@@ -1,0 +1,53 @@
+# Build and test against musl libc, in an Alpine container.
+#
+# Every other job builds against glibc (or macOS libc), so musl breakage has
+# only ever been found downstream, by embedded/cross builds (Buildroot,
+# OpenWrt, Alpine): the <linux/if_ether.h> clash in txring.h and fts_*() living
+# in the standalone libfts rather than libc (#1154). This keeps both fixed.
+#
+# Both build systems run, since each has its own feature checks (configure.ac
+# and cmake/*.cmake) that have to find musl-fts independently.
+#
+# The container gets NET_ADMIN/NET_RAW so it can create a dummy interface and
+# run the live replay suite on it, without touching the runner's networking.
+name: musl
+
+on: [push, pull_request]
+
+jobs:
+  alpine:
+    runs-on: ubuntu-latest
+    container:
+      image: alpine:3.22
+      options: --cap-add=NET_ADMIN --cap-add=NET_RAW
+    steps:
+      - name: Install prereqs
+        run: |
+          apk add --no-cache build-base linux-headers autoconf automake libtool \
+            libpcap-dev musl-fts-dev liburing-dev libxdp-dev libdnet-dev tcpdump cmake python3 asciidoctor \
+            iproute2 git tar xz
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - name: Create a dummy interface for the replay tests
+        run: |
+          ip link add dummy0 type dummy
+          ip link set dummy0 up
+      - name: Create configure script
+        run: mkdir -p build && cd build && ../autogen.sh
+      - name: configure
+        run: |
+          cd build
+          ../configure --disable-local-libopts --enable-debug --enable-test-hexdump \
+            --with-testnic=dummy0 --with-testnic2=dummy0
+      - name: make
+        run: make -C build -j 4
+      - name: unit tests (make check)
+        run: make -C build check || (cat build/test/unit/test-suite.log >&2; false)
+      - name: tests
+        run: make -C build test || (cat build/test/test.log >&2; false)
+      - name: CMake configure
+        run: cmake -B build-cmake -DENABLE_DEBUG=ON
+      - name: CMake build
+        run: cmake --build build-cmake -j 4
+      - name: unit tests (ctest)
+        run: ctest --test-dir build-cmake --output-on-failure
