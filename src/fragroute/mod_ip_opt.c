@@ -91,6 +91,9 @@ ip_opt_apply(void *d, struct pktq *pktq)
             if (len > 0) {
                 pkt->pkt_end += len;
                 pkt_decorate(pkt);
+                /* pkt_decorate() leaves pkt_ip NULL if the rebuilt packet no longer parses */
+                if (pkt->pkt_ip == NULL)
+                    continue;
                 ip_checksum(pkt->pkt_ip, pkt->pkt_end - pkt->pkt_eth_data);
             }
         }
