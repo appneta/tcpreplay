@@ -1,3 +1,30 @@
+10/25/2026 Version 4.6.2
+    - fragroute: fix a null-deref in ip_opt_apply() when the rebuilt packet no longer parses
+      (OSS-Fuzz 576377476)
+    - fragroute: fix a wild read in ip_tos_apply() on a packet pkt_decorate() didn't fully parse
+      (OSS-Fuzz 545925319)
+    - fragroute: free the rules in mod_close(), which unlinked but leaked each one
+      (OSS-Fuzz 545818605)
+    - fragroute: only add TCP options to packets with a valid TCP header - a non-TCP packet
+      or bogus th_off made tcp_opt call memmove() with a negative size (OSS-Fuzz 547161248)
+    - fragroute: fix a double free of the static rand_t in ip_frag and tcp_seg when
+      reopened (OSS-Fuzz 547186627, 547151403)
+    - fragroute: make ip_opt and tcp_opt add options - the packet buffer size left no room
+      for ip_add_option(), so they never did (#1163)
+    - fragroute: stop a failed ip_opt/tcp_opt from truncating the packet by a byte - an
+      ssize_t error return was kept in a size_t (#1162)
+    - fragroute: fix the tcp_opt wscale option length, 3 not 4 (#1164)
+    - fragroute: fix a heap overflow in tcp_chaff paws, whose option insert used the wrong
+      buffer size, and a packet leak in ip_chaff opt on IPv6 (#1165)
+    - fragroute: set ip_chaff's IPv6 hop limit on the duplicate and reject tcp_chaff paws
+      with th_off < 5 (#1166)
+    - tcpreplay: fix --pps being ignored with -T select, a regression since 4.5.0 (#1150, #1151)
+    - build: fall back to libfts for fts_read() on musl and uClibc (#1153)
+    - build: honor --with-tcpdump when cross compiling and accept --without-tcpdump,
+      -DWITH_TCPDUMP=no/OFF (#1152, #1167, #1168, #1169)
+    - build: fix txring.h on musl (#1154)
+    - build: fix clang warnings on macOS (#1155)
+
 08/15/2026 Version 4.6.1
     - tcpedit: fix an inverted bounds check in dlt_radiotap_get_80211() that made
       an oversized memcpy() run exactly when it was guaranteed to overflow
