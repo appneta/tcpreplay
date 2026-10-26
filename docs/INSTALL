@@ -262,6 +262,7 @@ of the top-level CMakeLists.txt.  Summary:
     --with-pfring-lib=LIB       -DWITH_PFRING_LIB=LIB
     --with-libdnet=DIR          -DWITH_LIBDNET=DIR
     --with-tcpdump=FILE         -DWITH_TCPDUMP=FILE
+    --without-tcpdump           -DWITH_TCPDUMP=no
     --with-testnic=NIC          -DWITH_TESTNIC=NIC
     --with-testnic2=NIC         -DWITH_TESTNIC2=NIC
     --with-macos-sdk=VER        -DCMAKE_OSX_SYSROOT=<sdk path>
