@@ -34,12 +34,12 @@ endif
 if ENABLE_FUZZER
 # libFuzzer supplies main(); the targets are fuzzing binaries, not tests.
 AM_CFLAGS = -fsanitize=fuzzer,address -g -O1
-noinst_PROGRAMS = fuzz_services fuzz_pcap $(FRAGROUTE_TARGET)
+noinst_PROGRAMS = fuzz_services fuzz_pcap $(FRAGROUTE_TARGET) fuzz_tcpedit
 TESTS =
 else
 # Standalone corpus replay: FUZZ_STANDALONE provides main().
 AM_CFLAGS = -DFUZZ_STANDALONE
-check_PROGRAMS = fuzz_services fuzz_pcap $(FRAGROUTE_TARGET)
+check_PROGRAMS = fuzz_services fuzz_pcap $(FRAGROUTE_TARGET) fuzz_tcpedit
 TESTS = run-corpus.sh
 endif
 
@@ -50,6 +50,15 @@ endif
 fuzz_services_SOURCES = fuzz_services.c fuzz_globals.c
 fuzz_pcap_SOURCES = fuzz_pcap.c fuzz_globals.c
 fuzz_fragroute_SOURCES = fuzz_fragroute.c fuzz_globals.c
+fuzz_tcpedit_SOURCES = fuzz_tcpedit.c fuzz_globals.c
+fuzz_tcpedit_CPPFLAGS = $(AM_CPPFLAGS) $(LIBOPTS_CFLAGS)
+# Mirror tcprewrite's link: the DLT plugins reference the
+# tcpedit_tcpedit_optDesc_p descriptor defined by the generated
+# tcprewrite_opts.c, and libcommon needs libstrl where the libc
+# lacks strlcat/strlcpy.
+fuzz_tcpedit_LDADD = $(top_builddir)/src/tcprewrite_opts.o \
+	$(top_builddir)/src/tcpedit/libtcpedit.a $(LIBSTRL) $(LDADD) \
+	$(LIBOPTS_LDADD)
 
 noinst_HEADERS = fuzz_common.h
 
