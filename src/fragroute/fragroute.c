@@ -33,11 +33,23 @@
 #include "mod.h"
 #include "pkt.h"
 
+static void
+fragroute_flush(fragroute_t *ctx)
+{
+    struct pkt *pkt;
+
+    while ((pkt = TAILQ_FIRST(ctx->pktq)) != NULL) {
+        TAILQ_REMOVE(ctx->pktq, pkt, pkt_next);
+        pkt_free(pkt);
+    }
+}
+
 void
 fragroute_close(fragroute_t *ctx)
 {
     assert(ctx);
     mod_close();
+    fragroute_flush(ctx);
     free(ctx->pktq);
     free(ctx);
     pkt_close();
@@ -75,6 +87,7 @@ fragroute_process(fragroute_t *ctx, void *buf, size_t len)
 
     if (pkt->pkt_ip == NULL) {
         strcpy(ctx->errbuf, "skipping non-IP packet");
+        pkt_free(pkt);
         return -1;
     }
     /*  Don't always checksum packets before being fragged
@@ -83,7 +96,7 @@ fragroute_process(fragroute_t *ctx, void *buf, size_t len)
         }
     */
 
-    TAILQ_INIT(ctx->pktq);
+    fragroute_flush(ctx);
     TAILQ_INSERT_TAIL(ctx->pktq, pkt, pkt_next);
 
     mod_apply(ctx->pktq);
@@ -137,6 +150,7 @@ fragroute_init(const int mtu, const int dlt, const char *config, char *errbuf)
 
     ctx = (fragroute_t *)safe_malloc(sizeof(fragroute_t));
     ctx->pktq = (struct pktq *)safe_malloc(sizeof(struct pktq));
+    TAILQ_INIT(ctx->pktq);
     ctx->dlt = dlt;
 
     pkt_init(128);
