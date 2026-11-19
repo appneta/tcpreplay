@@ -51,7 +51,7 @@ fuzz_services_SOURCES = fuzz_services.c fuzz_globals.c
 fuzz_pcap_SOURCES = fuzz_pcap.c fuzz_globals.c
 fuzz_fragroute_SOURCES = fuzz_fragroute.c fuzz_globals.c
 fuzz_tcpedit_SOURCES = fuzz_tcpedit.c fuzz_globals.c
-fuzz_tcpedit_CPPFLAGS = $(AM_CPPFLAGS) $(LIBOPTS_CFLAGS)
+fuzz_tcpedit_CPPFLAGS = $(AM_CPPFLAGS) $(LIBOPTS_CFLAGS) -I$(top_srcdir)/src/tcpedit
 # Mirror tcprewrite's link: the DLT plugins reference the
 # tcpedit_tcpedit_optDesc_p descriptor defined by the generated
 # tcprewrite_opts.c, and libcommon needs libstrl where the libc
