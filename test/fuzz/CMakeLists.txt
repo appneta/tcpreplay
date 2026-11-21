@@ -15,9 +15,9 @@ foreach(_t ${TCPR_FUZZ_TARGETS})
     # fuzz_globals.c: globals libcommon.a references but does not define
     if(_t STREQUAL fuzz_tcpedit)
         # The DLT plugins reference the tcpedit_tcpedit_optDesc_p descriptor
-        # defined by the generated tcprewrite_opts.c, so compile it into the
-        # target like tcprewrite itself does.
-        add_executable(${_t} ${_t}.c fuzz_globals.c ${tcprewrite_opts_SOURCE})
+        # defined by the generated tcprewrite_opts.c; fuzz_tcpedit_opts.c builds
+        # it in (tcprewrite_opts_SOURCE is set in src/'s scope, not visible here).
+        add_executable(${_t} ${_t}.c fuzz_tcpedit_opts.c fuzz_globals.c)
     else()
         add_executable(${_t} ${_t}.c fuzz_globals.c)
     endif()

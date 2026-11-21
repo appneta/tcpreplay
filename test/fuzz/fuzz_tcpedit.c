@@ -111,7 +111,12 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     if (len > FUZZ_TCPEDIT_MAXPKT)
         len = FUZZ_TCPEDIT_MAXPKT;
 
-    buf = (u_char *)malloc(len ? len : 1);
+    /*
+     * tcpedit edits in place and may grow the packet, so its callers hand it
+     * a MAXPACKET buffer (tcprewrite, tcpbridge); do the same, or a growing
+     * edit reports as an overflow that is really the harness's.
+     */
+    buf = (u_char *)malloc(MAXPACKET);
     if (buf == NULL)
         return 0;
 
