@@ -11,6 +11,7 @@ hexdump = @test_hexdump@
 ENABLE_DEBUG = @debug_run_time_flag@
 TCPPREP=../src/tcpprep --no-arg-comment
 TCPREPLAY=../src/tcpreplay
+TCPREPLAY_EDIT=../src/tcpreplay-edit
 TCPREWRITE=../src/tcprewrite
 TCPBRIDGE=../src/tcpbridge
 # verifies packets a replay reported as sent actually reached the wire (#1094)
@@ -26,6 +27,9 @@ TEST_JUMBO_PCAP=$(srcdir)/test_jumbo.pcap
 # IP-only capture for the fragroute tests: fragroute aborts on the first
 # non-IP packet, and test.pcap contains plenty of those.
 FRAGROUTE_PCAP=$(srcdir)/test_fragroute.pcap
+# edits that grow a packet: snaplen == captured length, so libpcap's buffer
+# ends where the packet does and writing past it shows up under ASan
+GROW_PCAPS = test_grow_pad.pcap test_grow_vlan.pcap test_maxsnaplen_raw.pcap
 
 if COMPILE_FRAGROUTE
 FRAGROUTE_TESTS = fragroute_valid fragroute_negsize fragroute_badrules
@@ -35,7 +39,7 @@ endif
 
 EXTRA_DIST = wirecheck.sh mtu_matrix.sh mtu_check_jumbo.py gen_jumbo_pcap.py \
 		replay_order.sh order_compare.py \
-		test.pcap test_jumbo.pcap test_nano.pcap test_fragroute.pcap \
+		test.pcap test_jumbo.pcap test_nano.pcap test_fragroute.pcap $(GROW_PCAPS) \
 		test.auto_bridge test.auto_client test.auto_router \
 		test.auto_server test.auto_first test.cidr test.comment test.port test.mac \
 		test.cidr_reverse test.mac_reverse test.regex_reverse \
@@ -243,12 +247,13 @@ tcprewrite: rewrite_portmap rewrite_range_portmap rewrite_endpoint \
 	rewrite_tos rewrite_mtutrunc rewrite_enet_subsmac rewrite_mac_seed \
 	rewrite_mac_seed_keep rewrite_l7fuzzing rewrite_sequence rewrite_fixcsum \
 	rewrite_fixlen_pad rewrite_fixlen_trunc rewrite_fixlen_del \
-	$(FRAGROUTE_TESTS)
+	rewrite_dltuser_maxsnaplen $(FRAGROUTE_TESTS)
 
 tcpreplay: replay_wirecheck replay_mtu_jumbo replay_mtu_small replay_ordering replay_basic replay_nano_timer replay_cache \
 	replay_pps replay_rate replay_top \
 	replay_config replay_multi replay_pps_multi replay_precache \
-	replay_stats replay_dualfile replay_maxsleep replay_include replay_exclude replay_unique_ip
+	replay_stats replay_dualfile replay_maxsleep replay_include replay_exclude replay_unique_ip \
+	replay_edit_grow
 
 # re-run the whole tcpreplay test group with the io_uring injection method;
 # not part of 'make test' - CI invokes it explicitly on Linux builds
@@ -516,6 +521,18 @@ replay_cache:
 	$(TCPREPLAY) $(ENABLE_DEBUG) -c $(srcdir)/test.cidr -i $(nic1) -I $(nic2) -t $(TEST_PCAP) >> test.log 2>&1; \
 	if [ $$? -eq 0 ] ; then $(PRINTF) "\t\t\t%s\n" "OK"; else $(PRINTF) "\t\t\t%s\n" "FAILED"; false; fi
 
+
+replay_edit_grow:
+	$(PRINTF) "%s" "[tcpreplay-edit] Packet growing edits test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay-edit] Packet growing edits test: " >> test.log
+	rc=0; \
+	$(TCPREPLAY_EDIT) $(ENABLE_DEBUG) -i $(nic1) --fixlen=pad \
+		$(srcdir)/test_grow_pad.pcap >> test.log 2>&1 || rc=1; \
+	$(TCPREPLAY_EDIT) $(ENABLE_DEBUG) -i $(nic1) --preload-pcap --fixlen=pad \
+		$(srcdir)/test_grow_pad.pcap >> test.log 2>&1 || rc=1; \
+	$(TCPREPLAY_EDIT) $(ENABLE_DEBUG) -i $(nic1) --enet-vlan=add --enet-vlan-tag=5 \
+		$(srcdir)/test_grow_vlan.pcap >> test.log 2>&1 || rc=1; \
+	if [ $$rc -eq 0 ] ; then $(PRINTF) "\t%s\n" "OK"; else $(PRINTF) "\t%s\n" "FAILED"; false; fi
 
 replay_accurate:
 	$(PRINTF) "%s" "[tcpreplay] Accurate test: "
@@ -836,6 +853,16 @@ rewrite_tos:
 	else \
 	    $(PRINTF) "\t\t\t\t%s\n" "FAILED"; od -Ax -tx1 -v test.$@1 >> test.log; false; \
 	fi
+
+# a MAX_SNAPLEN frame given a 255-byte user L2 header would exceed MAXPACKET;
+# it must be refused (written unedited), not overflow the buffer
+rewrite_dltuser_maxsnaplen:
+	$(PRINTF) "%s" "[tcprewrite] DLT User max length test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] DLT User max length test: " >> test.log
+	dlink=aa; i=1; while [ $$i -lt 255 ]; do dlink="$$dlink,aa"; i=`expr $$i + 1`; done; \
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(srcdir)/test_maxsnaplen_raw.pcap -o test.$@1 \
+		--dlt=user --user-dlt=147 --user-dlink=$$dlink >> test.log 2>&1; \
+	if [ $$? -eq 0 ] ; then $(PRINTF) "\t\t%s\n" "OK"; else $(PRINTF) "\t\t%s\n" "FAILED"; false; fi
 
 rewrite_mtutrunc:
 	$(PRINTF) "%s" "[tcprewrite] MTU Truncate test: "
