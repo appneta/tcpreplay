@@ -7,11 +7,38 @@
 #ifdef HAVE_DUMBNET_H
 #include <dumbnet.h>
 #endif
+#include "pkt.h"
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
 
 static ssize_t inet_add_option_6(void *buf, size_t len, int proto, const void *optbuf, size_t optlen);
+
+/*
+ * ip_add_option() works out how many payload bytes it must shift from the
+ * packet's own ip_len field: datalen = ntohs(ip_len) - (IP header, plus the
+ * TCP header for IP_PROTO_TCP).  A packet whose ip_len is smaller than those
+ * headers - most easily ip_len == 0, which pkt_decorate() deliberately accepts
+ * for TSO/Wireshark captures without rewriting the field - drives datalen
+ * negative, and libdnet hands it straight to memmove() as a huge size_t
+ * (OSS-Fuzz: negative-size-param in ip_add_option, reached from ip_opt and
+ * ip_chaff).  mod_tcp_opt guards its own ip_add_option() calls the same way;
+ * this is the shared IPv4 precondition for the ip_opt and ip_chaff modules.
+ */
+int
+ip_can_add_option(const struct pkt *pkt)
+{
+    size_t hl;
+
+    if (pkt->pkt_ip == NULL || pkt->pkt_ip_data == NULL)
+        return 0;
+
+    hl = (size_t)pkt->pkt_ip->ip_hl << 2;
+    if (hl < IP_HDR_LEN)
+        return 0;
+
+    return ntohs(pkt->pkt_ip->ip_len) >= hl;
+}
 
 ssize_t
 inet_add_option(uint16_t eth_type, void *buf, size_t len, int proto, const void *optbuf, size_t optlen)

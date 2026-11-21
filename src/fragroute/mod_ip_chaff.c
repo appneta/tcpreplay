@@ -7,6 +7,7 @@
  */
 
 #include "config.h"
+#include "iputil.h"
 #include "mod.h"
 #include "pkt.h"
 #include "randutil.h"
@@ -96,7 +97,7 @@ ip_chaff_apply(void *d, struct pktq *pktq)
             }
             break;
         case CHAFF_TYPE_OPT:
-            if (eth_type == ETH_TYPE_IP) {
+            if (eth_type == ETH_TYPE_IP && ip_can_add_option(new)) {
                 opt.opt_type = 0x42;
                 opt.opt_len = IP_OPT_LEN;
                 i = ip_add_option(new->pkt_ip,
