@@ -103,14 +103,20 @@ ports2PORT(char *ports)
 
         from_begin = strtok_r(from_s, "-", &token2);
         from_end = strtok_r(NULL, "-", &token2);
+        /* "-:80" leaves no tokens at all */
+        if (!from_begin || !from_end) {
+            free(portmap);
+            return NULL;
+        }
+
         long from_b = strtol(from_begin, &badchar, 10);
-        if (!from_begin || !from_end || strlen(badchar) != 0) {
+        if (strlen(badchar) != 0) {
             free(portmap);
             return NULL;
         }
 
         long from_e = strtol(from_end, &badchar, 10);
-        if (from_b > 65535 || from_b < 0 || from_e > 65535 || from_e < 0) {
+        if (strlen(badchar) != 0 || from_b > 65535 || from_b < 0 || from_e > 65535 || from_e < 0) {
             free(portmap);
             return NULL;
         }
@@ -225,11 +231,13 @@ free_portmap(tcpedit_portmap_t *portmap)
 {
     assert(portmap);
 
-    /* recursively go down the portmaps */
-    if (portmap->next != NULL)
-        free_portmap(portmap->next);
+    /* iterate: a port range is one node per port, far too deep to recurse */
+    while (portmap != NULL) {
+        tcpedit_portmap_t *next = portmap->next;
 
-    safe_free(portmap);
+        safe_free(portmap);
+        portmap = next;
+    }
 }
 
 /**
