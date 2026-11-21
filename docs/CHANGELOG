@@ -1,3 +1,35 @@
+11/21/2026 Version 4.6.3
+    - fragroute: fix a signed overflow formatting the delay in the print module
+      (OSS-Fuzz 578324118, #1175)
+    - fragroute: free queued packets in fragroute_close() and between packets; the
+      leak grew until it hit the fuzzer's memory limit (OSS-Fuzz 579159805, 587231190, #1176)
+    - fragroute: parse ip_opt/ip6_opt route addresses as numeric only - a hostname
+      triggered a DNS lookup (OSS-Fuzz 587772963, #1177)
+    - fragroute: don't let ip_opt/ip_chaff add options to a packet whose ip_len is
+      shorter than its header, and drop fragments too big for the caller's buffer (#1179)
+    - tcpedit: check L4 header lengths before --fixcsum (IPv6), --fixlen/--mtu-trunc,
+      --tcp-sequence and IPv6 --seed/--pnat read or write them (#1180)
+    - tcpedit: keep --fuzz-seed mutations inside the captured data (#1181)
+    - tcpreplay-edit: edit a MAXPACKET copy of each packet - --fixlen=pad and
+      --enet-vlan=add wrote past libpcap's buffer (#1182)
+    - tcpedit: refuse a --user-dlink frame that would exceed MAXPACKET (#1182)
+    - tcpedit: fix portmap crashes on "-:80" and large port ranges, and IPv6 remapping
+      with a prefix that isn't a multiple of 8 bits (#1183)
+    - tcpedit: use the output L2 header length for ARP --seed after a --dlt conversion,
+      and bound the 802.11 SNAP header read (#1191)
+    - tcpreplay: bound the IPv6 hop-by-hop read in flow statistics (#1184)
+    - tcpreplay: AF_XDP sends only the captured bytes of a truncated packet - it read
+      past the capture and transmitted heap contents (#1192)
+    - tcprewrite: stop when the capture has more packets than the --cachefile covers (#1184)
+    - tcpreplay-edit: decode each capture with its own DLT, not the output interface's;
+      --dualfile captures must now share a DLT to be edited (#1193)
+    - build: fix the libdnet include path for tcpliveplay, examples and the fuzz/unit
+      tests, and --enable-asan with clang (#1178)
+    - test: fix the big-endian rewrite_dltraw and rewrite_nanosec golden files (#1194)
+    - test: add an ASan-checked regression test for each fix above
+    - ci: add a musl (Alpine) build and test workflow (#1172)
+    - fuzz: add an OSS-Fuzz target for tcpedit (#1173)
+
 10/25/2026 Version 4.6.2
     - fragroute: fix a null-deref in ip_opt_apply() when the rebuilt packet no longer parses
       (OSS-Fuzz 576377476)
