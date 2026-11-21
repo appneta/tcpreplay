@@ -35,7 +35,7 @@ endif
 
 EXTRA_DIST = wirecheck.sh mtu_matrix.sh mtu_check_jumbo.py gen_jumbo_pcap.py \
 		replay_order.sh order_compare.py \
-		test.pcap test_jumbo.pcap test_nano.pcap test_fragroute.pcap \
+		test.pcap test_jumbo.pcap test_nano.pcap test_fragroute.pcap test_flow_hbh_trunc.pcap \
 		test.auto_bridge test.auto_client test.auto_router \
 		test.auto_server test.auto_first test.cidr test.comment test.port test.mac \
 		test.cidr_reverse test.mac_reverse test.regex_reverse \
@@ -243,12 +243,13 @@ tcprewrite: rewrite_portmap rewrite_range_portmap rewrite_endpoint \
 	rewrite_tos rewrite_mtutrunc rewrite_enet_subsmac rewrite_mac_seed \
 	rewrite_mac_seed_keep rewrite_l7fuzzing rewrite_sequence rewrite_fixcsum \
 	rewrite_fixlen_pad rewrite_fixlen_trunc rewrite_fixlen_del \
-	$(FRAGROUTE_TESTS)
+	rewrite_cache_short $(FRAGROUTE_TESTS)
 
 tcpreplay: replay_wirecheck replay_mtu_jumbo replay_mtu_small replay_ordering replay_basic replay_nano_timer replay_cache \
 	replay_pps replay_rate replay_top \
 	replay_config replay_multi replay_pps_multi replay_precache \
-	replay_stats replay_dualfile replay_maxsleep replay_include replay_exclude replay_unique_ip
+	replay_stats replay_dualfile replay_maxsleep replay_include replay_exclude replay_unique_ip \
+	replay_flow_hbh_trunc
 
 # re-run the whole tcpreplay test group with the io_uring injection method;
 # not part of 'make test' - CI invokes it explicitly on Linux builds
@@ -516,6 +517,14 @@ replay_cache:
 	$(TCPREPLAY) $(ENABLE_DEBUG) -c $(srcdir)/test.cidr -i $(nic1) -I $(nic2) -t $(TEST_PCAP) >> test.log 2>&1; \
 	if [ $$? -eq 0 ] ; then $(PRINTF) "\t\t\t%s\n" "OK"; else $(PRINTF) "\t\t\t%s\n" "FAILED"; false; fi
 
+
+# IPv6 hop-by-hop next header with nothing captured after the IPv6 header,
+# snaplen == packet length; flow stats are on by default
+replay_flow_hbh_trunc:
+	$(PRINTF) "%s" "[tcpreplay] Truncated IPv6 hop-by-hop flow test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay] Truncated IPv6 hop-by-hop flow test: " >> test.log
+	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -t $(srcdir)/test_flow_hbh_trunc.pcap >> test.log 2>&1; \
+	if [ $$? -eq 0 ] ; then $(PRINTF) "\t%s\n" "OK"; else $(PRINTF) "\t%s\n" "FAILED"; false; fi
 
 replay_accurate:
 	$(PRINTF) "%s" "[tcpreplay] Accurate test: "
@@ -835,6 +844,20 @@ rewrite_tos:
 	    $(PRINTF) "\t\t\t\t%s\n" "OK"; \
 	else \
 	    $(PRINTF) "\t\t\t\t%s\n" "FAILED"; od -Ax -tx1 -v test.$@1 >> test.log; false; \
+	fi
+
+# a cache for 20 packets used on a 259-packet capture must be refused, not
+# read past (signals are exit 128-254)
+rewrite_cache_short:
+	$(PRINTF) "%s" "[tcprewrite] Short cache file test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Short cache file test: " >> test.log
+	$(TCPPREP) -a client -i $(FRAGROUTE_PCAP) -o test.$@.cache >> test.log 2>&1
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 -c test.$@.cache >> test.log 2>&1; \
+	status=$$?; \
+	if [ $$status -ne 0 ] && [ $$status -lt 128 -o $$status -eq 255 ]; then \
+	    $(PRINTF) "\t\t\t%s\n" "OK"; \
+	else \
+	    $(PRINTF) "\t\t\t%s\n" "FAILED"; false; \
 	fi
 
 rewrite_mtutrunc:
