@@ -13,8 +13,9 @@
     - tcpreplay-edit: edit a MAXPACKET copy of each packet - --fixlen=pad and
       --enet-vlan=add wrote past libpcap's buffer (#1182)
     - tcpedit: refuse a --user-dlink frame that would exceed MAXPACKET (#1182)
-    - tcpedit: fix portmap crashes on "-:80" and large port ranges, and IPv6 remapping
-      with a prefix that isn't a multiple of 8 bits (#1183)
+    - tcpedit: fix portmap crashes on an empty range or list item ("-:80", "+:80") and
+      large port ranges, and reject an invalid entry after the first instead of dropping
+      it; fix IPv6 remapping with a prefix that isn't a multiple of 8 bits (#1183)
     - tcpedit: use the output L2 header length for ARP --seed after a --dlt conversion,
       and bound the 802.11 SNAP header read (#1191)
     - tcpreplay: bound the IPv6 hop-by-hop read in flow statistics (#1184)
