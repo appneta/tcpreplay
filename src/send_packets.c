@@ -622,7 +622,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         }
 
         /* write packet out on network, randomly skipping it to simulate --loss */
-        if ((options->loss <= 0.0f || rand() > (options->loss / 100.0f) * RAND_MAX) &&
+        if ((options->loss <= 0.0f || rand() > (options->loss / 100.0f) * (float)RAND_MAX) &&
             sendpacket(sp, send_data, send_len, &pkthdr) < (int)send_len) {
             warnx("Unable to send packet: %s", sendpacket_geterr(sp));
             /* the backend has declared itself unusable (e.g. a stalled AF_XDP
@@ -918,7 +918,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         }
 
         /* write packet out on network, randomly skipping it to simulate --loss */
-        if ((options->loss <= 0.0f || rand() > (options->loss / 100.0f) * RAND_MAX) &&
+        if ((options->loss <= 0.0f || rand() > (options->loss / 100.0f) * (float)RAND_MAX) &&
             sendpacket(sp, send_data, send_len, pkthdr_ptr) < (int)send_len) {
             warnx("Unable to send packet: %s", sendpacket_geterr(sp));
             /* the backend has declared itself unusable (e.g. a stalled AF_XDP

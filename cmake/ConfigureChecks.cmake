@@ -365,12 +365,17 @@ if(NOT HAVE_INET_ADDR)
     message(FATAL_ERROR "We need inet_addr.  See bug 26")
 endif()
 
-# Haiku: fts_*() lives in libbsd
+# Haiku: fts_*() lives in libbsd; musl and uClibc: in the standalone libfts
 check_function_exists(fts_read HAVE_FTS_READ)
 if(NOT HAVE_FTS_READ)
     check_library_exists(bsd fts_read "" HAVE_LIBBSD)
     if(HAVE_LIBBSD)
         list(APPEND TCPR_SYSTEM_LIBS bsd)
+    else()
+        check_library_exists(fts fts_read "" HAVE_LIBFTS)
+        if(HAVE_LIBFTS)
+            list(APPEND TCPR_SYSTEM_LIBS fts)
+        endif()
     endif()
 endif()
 

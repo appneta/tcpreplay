@@ -117,7 +117,7 @@ gettimeofday_sleep(sendpacket_t *sp, struct timespec *nap, struct timespec *now,
  * for future reference
  */
 static inline void
-select_sleep(sendpacket_t *sp _U_, struct timespec *nap, struct timespec *now_ns, bool flush _U_)
+select_sleep(sendpacket_t *sp _U_, const struct timespec *nap, struct timespec *now_ns, bool flush _U_)
 {
     struct timeval timeout;
     timeout.tv_sec = 0;
@@ -127,7 +127,7 @@ select_sleep(sendpacket_t *sp _U_, struct timespec *nap, struct timespec *now_ns
         ioctl(sp->handle.fd, NIOCTXSYNC, NULL); /* flush TX buffer */
 #endif                                          /* HAVE_NETMAP */
 
-    TIMEVAL_TO_TIMESPEC(&timeout, nap);
+    TIMESPEC_TO_TIMEVAL(&timeout, nap);
 
     if (select(0, NULL, NULL, NULL, &timeout) < 0)
         warnx("select_sleep() returned early due to error: %s", strerror(errno));

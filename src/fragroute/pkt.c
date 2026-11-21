@@ -51,8 +51,15 @@ pkt_new(size_t len)
         return (NULL);
 
     timerclear(&pkt->pkt_ts);
-    pkt->pkt_buf_size = PKT_BUF_ALIGN + len;
-    pkt->pkt_buf = malloc(max((size_t)PKT_BUF_LEN, pkt->pkt_buf_size));
+    /*
+     * pkt_buf_size is the size of the allocation, not of the packet in it: the
+     * option-adding modules pass pkt_buf + pkt_buf_size - pkt_ip to libdnet as
+     * the space available, so recording only the packet's length left no room
+     * for ip_add_option() to grow it and every ip_opt/tcp_opt call failed.
+     * pkt_dup() allocates pkt_buf_size too, so duplicates keep the room.
+     */
+    pkt->pkt_buf_size = max((size_t)(PKT_BUF_ALIGN + PKT_BUF_LEN), PKT_BUF_ALIGN + len + PKT_BUF_SLACK);
+    pkt->pkt_buf = malloc(pkt->pkt_buf_size);
     if (pkt->pkt_buf == NULL) {
         /* pkt came from bget(), so it must go back via brel(), not free() */
         brel(pkt);

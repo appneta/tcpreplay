@@ -53,7 +53,8 @@ ip_tos_apply(void *d, struct pktq *pktq)
     {
         uint16_t eth_type = htons(pkt->pkt_eth->eth_type);
 
-        if (eth_type == ETH_TYPE_IP) {
+        /* pkt_decorate() leaves pkt_ip_data NULL if the packet no longer parses */
+        if (eth_type == ETH_TYPE_IP && pkt->pkt_ip != NULL && pkt->pkt_ip_data != NULL) {
             pkt->pkt_ip->ip_tos = data->tos;
             /* XXX - do incremental checksum */
             ip_checksum(pkt->pkt_ip, pkt->pkt_ip_data - pkt->pkt_eth_data);

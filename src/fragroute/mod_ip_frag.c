@@ -38,8 +38,10 @@ static struct ip_frag_data {
 void *
 ip_frag_close(_U_ void *d)
 {
-    if (ip_frag_data.rnd != NULL)
+    if (ip_frag_data.rnd != NULL) {
         rand_close(ip_frag_data.rnd);
+        ip_frag_data.rnd = NULL;
+    }
     ip_frag_data.size = 0;
     return (NULL);
 }
@@ -51,8 +53,10 @@ ip_frag_open(int argc, char *argv[])
         warn("need fragment <size> in bytes");
         return (NULL);
     }
-    if (ip_frag_data.rnd != NULL)
+    if (ip_frag_data.rnd != NULL) {
         rand_close(ip_frag_data.rnd);
+        ip_frag_data.rnd = NULL;
+    }
     ip_frag_data.rnd = rand_open();
     ip_frag_data.size = (int)strtol(argv[1], NULL, 10);
 

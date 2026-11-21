@@ -22,6 +22,7 @@
 
 #include "defines.h"
 #include "config.h"
+#include <string.h>
 
 /*
  * shamelessly stolen from Linux kernel
@@ -42,13 +43,25 @@ typedef uint32_t __wsum;
 
 /*
  * csum_replace*()'s sum parameter is routinely &pkt_hdr->field from one of
- * the packed wire structs (#1104). __sum16 itself can't carry the relaxed
- * alignment - system headers (linux/types.h) may already have their own
- * unaligned __sum16 typedef, and GCC keeps the first declaration's alignment
- * on redeclaration - so use a distinctly-named type for the pointer instead
- * (#1122).
+ * the packed wire structs (#1104), so it may be misaligned. Take it as a
+ * void * and access it via memcpy(), which is safe for any alignment and
+ * doesn't trip -Waddress-of-packed-member (clang ignores an aligned(1)
+ * typedef on the pointee, #1122).
  */
-typedef uint16_t tcpr_unaligned_sum16_t __attribute__((aligned(1)));
+static inline __sum16
+csum_load(const void *p)
+{
+    __sum16 v;
+
+    memcpy(&v, p, sizeof(v));
+    return v;
+}
+
+static inline void
+csum_store(void *p, __sum16 v)
+{
+    memcpy(p, &v, sizeof(v));
+}
 
 /*
  * Fold a partial checksum
@@ -99,7 +112,7 @@ csum_unfold(__sum16 n)
 
 __wsum csum_partial(const void *buff, int len, __wsum wsum);
 static inline void
-csum_replace16(tcpr_unaligned_sum16_t *sum, const __be32 *from, const __be32 *to)
+csum_replace16(void *sum, const __be32 *from, const __be32 *to)
 {
     __be32 diff[] = {
             ~from[0],
@@ -112,17 +125,17 @@ csum_replace16(tcpr_unaligned_sum16_t *sum, const __be32 *from, const __be32 *to
             to[3],
     };
 
-    *sum = csum_fold(csum_partial(diff, sizeof(diff), ~csum_unfold(*sum)));
+    csum_store(sum, csum_fold(csum_partial(diff, sizeof(diff), ~csum_unfold(csum_load(sum)))));
 }
 
 static inline void
-csum_replace4(tcpr_unaligned_sum16_t *sum, __be32 from, __be32 to)
+csum_replace4(void *sum, __be32 from, __be32 to)
 {
-    *sum = csum_fold(csum_add(csum_sub(~csum_unfold(*sum), from), to));
+    csum_store(sum, csum_fold(csum_add(csum_sub(~csum_unfold(csum_load(sum)), from), to)));
 }
 
 static inline void
-csum_replace2(tcpr_unaligned_sum16_t *sum, __be16 from, __be16 to)
+csum_replace2(void *sum, __be16 from, __be16 to)
 {
-    *sum = ~csum16_add(csum16_sub(~(*sum), from), to);
+    csum_store(sum, ~csum16_add(csum16_sub(~csum_load(sum), from), to));
 }

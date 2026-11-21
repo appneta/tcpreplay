@@ -232,6 +232,9 @@
 /* Do we have libdnet? */
 #cmakedefine HAVE_LIBDNET @HAVE_LIBDNET@
 
+/* Define to 1 if you have the 'fts' library (-lfts). */
+#cmakedefine HAVE_LIBFTS @HAVE_LIBFTS@
+
 /* Define to 1 if you have the 'gen' library (-lgen). */
 #cmakedefine HAVE_LIBGEN @HAVE_LIBGEN@
 
