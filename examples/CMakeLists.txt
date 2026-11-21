@@ -6,3 +6,6 @@ target_link_libraries(replay_stats PRIVATE tcpreplay_static
     ${PCAP_LIBRARIES} ${DNET_LIBRARIES} ${TCPR_SYSTEM_LIBS} ${LNAV_LIBRARIES})
 target_include_directories(replay_stats PRIVATE
     ${TCPR_GENERATED_INCLUDE_DIRS} ${TCPR_SOURCE_INCLUDE_DIRS})
+if(DNET_CFLAGS)
+    target_compile_options(replay_stats PRIVATE ${DNET_CFLAGS})
+endif()

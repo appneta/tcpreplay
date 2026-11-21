@@ -447,11 +447,14 @@ AC_ARG_ENABLE([asan],
     AS_HELP_STRING([--enable-asan],[Enable Address Sanitizer support]))
 if test "x$enable_asan" = "xyes"; then
         build_asan=yes
-        AC_CHECK_LIB([asan], [__asan_report_error], ,
-                [AC_MSG_ERROR([libasan.so not found, this is required for --enable-asan])])
         CFLAGS="${CFLAGS} -O1 -g -fsanitize=address -fno-omit-frame-pointer"
-        dnl -lasan always need to be the first library
         LDFLAGS="-fsanitize=address ${LDFLAGS}"
+        dnl let the compiler driver pick its own runtime: an explicit -lasan is
+        dnl gcc's, and clang aborts at startup when it is linked alongside its own
+        AC_MSG_CHECKING([whether $CC supports -fsanitize=address])
+        AC_LINK_IFELSE([AC_LANG_PROGRAM([], [])], [AC_MSG_RESULT([yes])],
+                [AC_MSG_RESULT([no])
+                 AC_MSG_ERROR([$CC cannot link with -fsanitize=address, this is required for --enable-asan])])
 else
         build_asan=no
 fi

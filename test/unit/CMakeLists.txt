@@ -13,6 +13,9 @@ foreach(_test ${TCPR_UNIT_TESTS})
     target_include_directories(${_test} PRIVATE
         ${TCPR_GENERATED_INCLUDE_DIRS} ${TCPR_SOURCE_INCLUDE_DIRS}
         ${CMAKE_CURRENT_SOURCE_DIR})
+    if(DNET_CFLAGS)
+        target_compile_options(${_test} PRIVATE ${DNET_CFLAGS})
+    endif()
     target_link_libraries(${_test} PRIVATE common
         ${PCAP_LIBRARIES} ${DNET_LIBRARIES} ${TCPR_SYSTEM_LIBS} ${LNAV_LIBRARIES})
     add_test(NAME ${_test} COMMAND ${_test})

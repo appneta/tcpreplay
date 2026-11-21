@@ -18,6 +18,9 @@ foreach(_t ${TCPR_FUZZ_TARGETS})
     target_include_directories(${_t} PRIVATE
         ${TCPR_GENERATED_INCLUDE_DIRS} ${TCPR_SOURCE_INCLUDE_DIRS}
         ${CMAKE_CURRENT_SOURCE_DIR})
+    if(DNET_CFLAGS)
+        target_compile_options(${_t} PRIVATE ${DNET_CFLAGS})
+    endif()
     # fragroute first: it calls into common and libdnet, and a static archive
     # only resolves backwards
     if(ENABLE_FRAGROUTE)
