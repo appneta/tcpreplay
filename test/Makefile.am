@@ -592,13 +592,17 @@ rewrite_ipv6_prefix_remap:
 rewrite_portmap_invalid:
 	$(PRINTF) "%s" "[tcprewrite] Invalid portmap test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Invalid portmap test: " >> test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 -r "-:80" >> test.log 2>&1; \
-	status=$$?; \
-	if [ $$status -ne 0 ] && [ $$status -lt 128 -o $$status -eq 255 ]; then \
-	    $(PRINTF) "\t\t\t%s\n" "OK"; \
-	else \
-	    $(PRINTF) "\t\t\t%s\n" "FAILED"; false; \
-	fi
+	rc=0; \
+	for spec in "-:80" "+:80" "80:81,+:82"; do \
+	    $(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 -r "$$spec" > test.$@.out 2>&1; \
+	    status=$$?; \
+	    cat test.$@.out >> test.log; \
+	    if [ $$status -eq 0 ] || { [ $$status -ge 128 ] && [ $$status -ne 255 ]; } || \
+	       grep -q "Sanitizer\|runtime error" test.$@.out; then \
+	        $(PRINTF) "%s\n" "ERROR: portmap '$$spec' exited $$status" >> test.log; rc=1; \
+	    fi; \
+	done; \
+	if [ $$rc -eq 0 ] ; then $(PRINTF) "\t\t\t%s\n" "OK"; else $(PRINTF) "\t\t\t%s\n" "FAILED"; false; fi
 
 # each port in a range is a list node: 4 full ranges is 262,148 nodes
 rewrite_portmap_big:
