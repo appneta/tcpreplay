@@ -11,6 +11,7 @@ hexdump = @test_hexdump@
 ENABLE_DEBUG = @debug_run_time_flag@
 TCPPREP=../src/tcpprep --no-arg-comment
 TCPREPLAY=../src/tcpreplay
+TCPREPLAY_EDIT=../src/tcpreplay-edit
 TCPREWRITE=../src/tcprewrite
 TCPBRIDGE=../src/tcpbridge
 # verifies packets a replay reported as sent actually reached the wire (#1094)
@@ -26,6 +27,10 @@ TEST_JUMBO_PCAP=$(srcdir)/test_jumbo.pcap
 # IP-only capture for the fragroute tests: fragroute aborts on the first
 # non-IP packet, and test.pcap contains plenty of those.
 FRAGROUTE_PCAP=$(srcdir)/test_fragroute.pcap
+# single packets cut off inside the L4 header, snaplen == packet length so the
+# replay buffer ends where the packet does (an overrun shows up under ASan)
+TRUNC_L4_PCAPS = test_trunc_ipv6_plen.pcap test_trunc_udp_frag.pcap \
+		test_trunc_tcp.pcap test_trunc_ipv6_udp.pcap
 
 if COMPILE_FRAGROUTE
 FRAGROUTE_TESTS = fragroute_valid fragroute_negsize fragroute_badrules
@@ -35,7 +40,7 @@ endif
 
 EXTRA_DIST = wirecheck.sh mtu_matrix.sh mtu_check_jumbo.py gen_jumbo_pcap.py \
 		replay_order.sh order_compare.py \
-		test.pcap test_jumbo.pcap test_nano.pcap test_fragroute.pcap \
+		test.pcap test_jumbo.pcap test_nano.pcap test_fragroute.pcap $(TRUNC_L4_PCAPS) \
 		test.auto_bridge test.auto_client test.auto_router \
 		test.auto_server test.auto_first test.cidr test.comment test.port test.mac \
 		test.cidr_reverse test.mac_reverse test.regex_reverse \
@@ -248,7 +253,8 @@ tcprewrite: rewrite_portmap rewrite_range_portmap rewrite_endpoint \
 tcpreplay: replay_wirecheck replay_mtu_jumbo replay_mtu_small replay_ordering replay_basic replay_nano_timer replay_cache \
 	replay_pps replay_rate replay_top \
 	replay_config replay_multi replay_pps_multi replay_precache \
-	replay_stats replay_dualfile replay_maxsleep replay_include replay_exclude replay_unique_ip
+	replay_stats replay_dualfile replay_maxsleep replay_include replay_exclude replay_unique_ip \
+	replay_edit_trunc_l4
 
 # re-run the whole tcpreplay test group with the io_uring injection method;
 # not part of 'make test' - CI invokes it explicitly on Linux builds
@@ -516,6 +522,18 @@ replay_cache:
 	$(TCPREPLAY) $(ENABLE_DEBUG) -c $(srcdir)/test.cidr -i $(nic1) -I $(nic2) -t $(TEST_PCAP) >> test.log 2>&1; \
 	if [ $$? -eq 0 ] ; then $(PRINTF) "\t\t\t%s\n" "OK"; else $(PRINTF) "\t\t\t%s\n" "FAILED"; false; fi
 
+
+replay_edit_trunc_l4:
+	$(PRINTF) "%s" "[tcpreplay-edit] Truncated L4 header test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay-edit] Truncated L4 header test: " >> test.log
+	rc=0; \
+	for t in "--fixcsum test_trunc_ipv6_plen.pcap" "--mtu-trunc test_trunc_udp_frag.pcap" \
+		 "--tcp-sequence=5 test_trunc_tcp.pcap" "--seed=42 test_trunc_ipv6_udp.pcap"; do \
+	    set -- $$t; \
+	    $(PRINTF) "%s\n" "--- $$t" >> test.log; \
+	    $(TCPREPLAY_EDIT) $(ENABLE_DEBUG) -i $(nic1) $$1 $(srcdir)/$$2 >> test.log 2>&1 || rc=1; \
+	done; \
+	if [ $$rc -eq 0 ] ; then $(PRINTF) "\t%s\n" "OK"; else $(PRINTF) "\t%s\n" "FAILED"; false; fi
 
 replay_accurate:
 	$(PRINTF) "%s" "[tcpreplay] Accurate test: "

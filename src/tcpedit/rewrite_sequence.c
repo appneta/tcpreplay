@@ -61,7 +61,8 @@ rewrite_ipv4_tcp_sequence(tcpedit_t *tcpedit, ipv4_hdr_t **ip_hdr, int l3len)
 
     if (*ip_hdr && (*ip_hdr)->ip_p == IPPROTO_TCP) {
         tcp_hdr_t *tcp_hdr = (tcp_hdr_t *)get_layer4_v4(*ip_hdr, (u_char *)(*ip_hdr) + l3len);
-        if (!tcp_hdr) {
+        /* the TCP header itself may be truncated */
+        if (!tcp_hdr || (u_char *)tcp_hdr + TCPR_TCP_H > (u_char *)(*ip_hdr) + l3len) {
             tcpedit_setwarn(tcpedit, "caplen to small to set TCP sequence for IP packet: l3 len=%d", l3len);
             return TCPEDIT_WARN;
         }
@@ -80,7 +81,8 @@ rewrite_ipv6_tcp_sequence(tcpedit_t *tcpedit, ipv6_hdr_t **ip6_hdr, int l3len)
 
     if (*ip6_hdr && (*ip6_hdr)->ip_nh == IPPROTO_TCP) {
         tcp_hdr_t *tcp_hdr = (tcp_hdr_t *)get_layer4_v6(*ip6_hdr, (u_char *)(*ip6_hdr) + l3len);
-        if (!tcp_hdr) {
+        /* the TCP header itself may be truncated */
+        if (!tcp_hdr || (u_char *)tcp_hdr + TCPR_TCP_H > (u_char *)(*ip6_hdr) + l3len) {
             tcpedit_setwarn(tcpedit, "caplen to small to set TCP sequence for IP packet: l3 len=%d", l3len);
             return TCPEDIT_WARN;
         }
