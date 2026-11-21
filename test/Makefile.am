@@ -11,6 +11,7 @@ hexdump = @test_hexdump@
 ENABLE_DEBUG = @debug_run_time_flag@
 TCPPREP=../src/tcpprep --no-arg-comment
 TCPREPLAY=../src/tcpreplay
+TCPREPLAY_EDIT=../src/tcpreplay-edit
 TCPREWRITE=../src/tcprewrite
 TCPBRIDGE=../src/tcpbridge
 # verifies packets a replay reported as sent actually reached the wire (#1094)
@@ -35,7 +36,7 @@ endif
 
 EXTRA_DIST = wirecheck.sh mtu_matrix.sh mtu_check_jumbo.py gen_jumbo_pcap.py \
 		replay_order.sh order_compare.py \
-		test.pcap test_jumbo.pcap test_nano.pcap test_fragroute.pcap \
+		test.pcap test_jumbo.pcap test_nano.pcap test_fragroute.pcap test_fuzz_short_payload.pcap \
 		test.auto_bridge test.auto_client test.auto_router \
 		test.auto_server test.auto_first test.cidr test.comment test.port test.mac \
 		test.cidr_reverse test.mac_reverse test.regex_reverse \
@@ -248,7 +249,8 @@ tcprewrite: rewrite_portmap rewrite_range_portmap rewrite_endpoint \
 tcpreplay: replay_wirecheck replay_mtu_jumbo replay_mtu_small replay_ordering replay_basic replay_nano_timer replay_cache \
 	replay_pps replay_rate replay_top \
 	replay_config replay_multi replay_pps_multi replay_precache \
-	replay_stats replay_dualfile replay_maxsleep replay_include replay_exclude replay_unique_ip
+	replay_stats replay_dualfile replay_maxsleep replay_include replay_exclude replay_unique_ip \
+	replay_edit_fuzz_short
 
 # re-run the whole tcpreplay test group with the io_uring injection method;
 # not part of 'make test' - CI invokes it explicitly on Linux builds
@@ -516,6 +518,15 @@ replay_cache:
 	$(TCPREPLAY) $(ENABLE_DEBUG) -c $(srcdir)/test.cidr -i $(nic1) -I $(nic2) -t $(TEST_PCAP) >> test.log 2>&1; \
 	if [ $$? -eq 0 ] ; then $(PRINTF) "\t\t\t%s\n" "OK"; else $(PRINTF) "\t\t\t%s\n" "FAILED"; false; fi
 
+
+# TCP packets with a 1-byte payload, snaplen == packet length: every packet is
+# fuzzed, and any mutation that runs past the payload shows up under ASan
+replay_edit_fuzz_short:
+	$(PRINTF) "%s" "[tcpreplay-edit] Fuzz short payload test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay-edit] Fuzz short payload test: " >> test.log
+	$(TCPREPLAY_EDIT) $(ENABLE_DEBUG) -i $(nic1) --fuzz-seed=7 --fuzz-factor=1 \
+		$(srcdir)/test_fuzz_short_payload.pcap >> test.log 2>&1; \
+	if [ $$? -eq 0 ] ; then $(PRINTF) "\t%s\n" "OK"; else $(PRINTF) "\t%s\n" "FAILED"; false; fi
 
 replay_accurate:
 	$(PRINTF) "%s" "[tcpreplay] Accurate test: "
