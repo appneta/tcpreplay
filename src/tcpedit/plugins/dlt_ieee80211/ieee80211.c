@@ -267,6 +267,10 @@ dlt_ieee80211_proto(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
         hdrlen += sizeof(ieee80211_hdr_t);
     }
 
+    /* dlt_ieee80211_l2len() doesn't count a SNAP header that wasn't captured */
+    if (pktlen < hdrlen + (int)sizeof(struct tcpr_802_2snap_hdr))
+        return TCPEDIT_SOFT_ERROR;
+
     hdr = (struct tcpr_802_2snap_hdr *)&packet[hdrlen];
 
     /* verify the header is 802.2SNAP (8 bytes) not 802.2 (3 bytes) */

@@ -1030,10 +1030,9 @@ rewrite_ipv6l3(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr, tcpr_dir_t direction, in
  * return 0 if no change, or 1 for a change
  */
 int
-randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, const u_char *pktdata, int datalink, int l3len)
+randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, const u_char *pktdata, int l2len, int l3len)
 {
     arp_hdr_t *arp_hdr;
-    int l2len;
 #ifdef FORCE_ALIGN
     uint32_t iptemp;
 #endif
@@ -1046,8 +1045,6 @@ randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, const u_char *pk
         tcpedit_seterr(tcpedit, "Unable to randomize ARP packet due to packet capture snap length %u", pkthdr->caplen);
         return TCPEDIT_ERROR;
     }
-
-    l2len = get_l2len(pktdata, (int)pkthdr->caplen, datalink);
 
     arp_hdr = (arp_hdr_t *)(pktdata + l2len);
 
