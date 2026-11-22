@@ -103,14 +103,20 @@ ports2PORT(char *ports)
 
         from_begin = strtok_r(from_s, "-", &token2);
         from_end = strtok_r(NULL, "-", &token2);
+        /* "-:80" leaves no tokens at all */
+        if (!from_begin || !from_end) {
+            free(portmap);
+            return NULL;
+        }
+
         long from_b = strtol(from_begin, &badchar, 10);
-        if (!from_begin || !from_end || strlen(badchar) != 0) {
+        if (strlen(badchar) != 0) {
             free(portmap);
             return NULL;
         }
 
         long from_e = strtol(from_end, &badchar, 10);
-        if (from_b > 65535 || from_b < 0 || from_e > 65535 || from_e < 0) {
+        if (strlen(badchar) != 0 || from_b > 65535 || from_b < 0 || from_e > 65535 || from_e < 0) {
             free(portmap);
             return NULL;
         }
@@ -127,8 +133,14 @@ ports2PORT(char *ports)
     /* process a list via +, filling in list[] */
     else if (strchr(from_s, '+')) {
         from_begin = strtok_r(from_s, "+", &token2);
+        /* "+:80" leaves no tokens at all */
+        if (!from_begin) {
+            safe_free(portmap);
+            return NULL;
+        }
+
         from_l = strtol(from_begin, &badchar, 10);
-        if (strlen(badchar) != 0) {
+        if (strlen(badchar) != 0 || from_l > 65535 || from_l < 0) {
             safe_free(portmap);
             return NULL;
         }
@@ -205,8 +217,13 @@ parse_portmap(tcpedit_portmap_t **portmap, const char *ourstr)
         if (substr == NULL)
             break;
 
-        /* process next record */
-        portmap_ptr->next = ports2PORT(substr);
+        /* process next record; an invalid one fails the whole map, like the first */
+        if ((portmap_ptr->next = ports2PORT(substr)) == NULL) {
+            free_portmap(*portmap);
+            *portmap = NULL;
+            safe_free(ourstrcpy);
+            return 0;
+        }
 
         /* ports2PORT may return a chain, so find the end of it */
         while (portmap_ptr->next != NULL)
@@ -225,11 +242,13 @@ free_portmap(tcpedit_portmap_t *portmap)
 {
     assert(portmap);
 
-    /* recursively go down the portmaps */
-    if (portmap->next != NULL)
-        free_portmap(portmap->next);
+    /* iterate: a port range is one node per port, far too deep to recurse */
+    while (portmap != NULL) {
+        tcpedit_portmap_t *next = portmap->next;
 
-    safe_free(portmap);
+        safe_free(portmap);
+        portmap = next;
+    }
 }
 
 /**
