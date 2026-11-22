@@ -2219,6 +2219,12 @@ fi
 
 LIBOPTS_CHECK(libopts)
 
+dnl Where the compiler lacks <stdnoreturn.h> (gcc < 4.7), the tearoff generates
+dnl a substitute in its build directory, which the generated *_opts.h need too
+if test -n "${NEED_LIBOPTS_DIR}" ; then
+    LIBOPTS_CFLAGS="${LIBOPTS_CFLAGS} -I\$(top_builddir)/libopts"
+fi
+
 
 dnl Apply the netmap include path (see the have_netmap block above) to CFLAGS
 dnl now, after every other detection in this script has already run, so the
