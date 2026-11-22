@@ -1340,6 +1340,8 @@ AC_LINK_IFELSE([AC_LANG_PROGRAM([[
     AC_MSG_RESULT(no)
 ])
 
+AM_CONDITIONAL([HAVE_PCAP_NANO], [test x$have_pcap_open_offline_with_tstamp_precision = xyes])
+
 if test $have_pcap_open_offline_with_tstamp_precision = yes ; then
     AC_DEFINE([HAVE_PCAP_OPEN_OFFLINE_WITH_TSTAMP_PRECISION], [1], [Does libpcap have pcap_open_offline_with_tstamp_precision?])
     AC_DEFINE([PCAP_TSTAMP_US_TO_NS_MULTIPLIER], [1], [Multiplier for conversion from PCAP usec to nsec])
