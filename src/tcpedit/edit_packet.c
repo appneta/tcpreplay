@@ -299,6 +299,7 @@ static void
 ipv6_addr_csum_replace(ipv6_hdr_t *ip6_hdr, struct tcpr_in6_addr *old_ip, struct tcpr_in6_addr *new_ip, int l3len)
 {
     uint8_t *l4, protocol;
+    int need;
 
     assert(ip6_hdr);
 
@@ -324,6 +325,11 @@ ipv6_addr_csum_replace(ipv6_hdr_t *ip6_hdr, struct tcpr_in6_addr *old_ip, struct
     }
 
     if (!l4)
+        return;
+
+    /* get_layer4_v6() only promises l4 is within the packet, not that the header fits */
+    need = protocol == IPPROTO_TCP ? TCPR_TCP_H : protocol == IPPROTO_UDP ? TCPR_UDP_H : 4;
+    if (l4 + need > (uint8_t *)ip6_hdr + l3len)
         return;
 
     ipv6_l34_csum_replace(l4, protocol, (uint32_t *)old_ip, (uint32_t *)new_ip);
@@ -571,10 +577,13 @@ untrunc_packet(tcpedit_t *tcpedit,
         if ((htons(ip_hdr->ip_off) & IP_OFFMASK) != 0) {
             chksum = 0;
         } else if (ip_hdr->ip_p == IPPROTO_UDP && (htons(ip_hdr->ip_off) & IP_MF) != 0) {
-            dataptr = (u_char *)ip_hdr;
-            dataptr += ip_hdr->ip_hl << 2;
-            udp_hdr = (udp_hdr_t *)dataptr;
-            udp_hdr->uh_sum = 0;
+            /* the first fragment may not have captured the whole UDP header */
+            if (pkthdr->caplen >= (uint32_t)l2len + (ip_hdr->ip_hl << 2) + TCPR_UDP_H) {
+                dataptr = (u_char *)ip_hdr;
+                dataptr += ip_hdr->ip_hl << 2;
+                udp_hdr = (udp_hdr_t *)dataptr;
+                udp_hdr->uh_sum = 0;
+            }
             chksum = 0;
         }
     }
