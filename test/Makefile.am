@@ -45,7 +45,7 @@ endif
 
 EXTRA_DIST = wirecheck.sh mtu_matrix.sh mtu_check_jumbo.py gen_jumbo_pcap.py xdp_truncated.sh \
 		replay_order.sh order_compare.py \
-		test.pcap test_jumbo.pcap test_nano.pcap test_fragroute.pcap test_xdp_truncated.pcap $(TRUNC_L4_PCAPS) $(GROW_PCAPS) \
+		test.pcap test_jumbo.pcap test_nano.pcap test_fragroute.pcap test_ipv6_remap.pcap test_xdp_truncated.pcap $(TRUNC_L4_PCAPS) $(GROW_PCAPS) \
 		test.auto_bridge test.auto_client test.auto_router \
 		test.auto_server test.auto_first test.cidr test.comment test.port test.mac \
 		test.cidr_reverse test.mac_reverse test.regex_reverse \
@@ -53,7 +53,7 @@ EXTRA_DIST = wirecheck.sh mtu_matrix.sh mtu_check_jumbo.py gen_jumbo_pcap.py xdp
 		test.include_dest test.prep_config \
 		test.primary test.regex test.secondary \
 		test.rewrite_seed test.rewrite_portmap test.rewrite_endpoint \
-		test.rewrite_pnat test.rewrite_pad test.rewrite_trunc \
+		test.rewrite_pnat test.rewrite_ipv6_prefix_remap test.rewrite_pad test.rewrite_trunc \
 		test.rewrite_mac test.rewrite_layer2 test.rewrite_config \
 		test.rewrite_skip test.rewrite_dltuser test.rewrite_dlthdlc test.rewrite_dltraw test.rewrite_nanosec \
 		test.rewrite_vlan802.1ad test.rewrite_vlandel test.rewrite_efcs \
@@ -65,7 +65,7 @@ EXTRA_DIST = wirecheck.sh mtu_matrix.sh mtu_check_jumbo.py gen_jumbo_pcap.py xdp
 		test.rewrite_fixlen_pad test.rewrite_fixlen_trunc test.rewrite_fixlen_del \
 		test.replay_unique_ip test.replay_include test.replay_exclude \
 		test2.rewrite_seed test2.rewrite_portmap test2.rewrite_endpoint \
-		test2.rewrite_pnat test2.rewrite_pad test2.rewrite_trunc \
+		test2.rewrite_pnat test2.rewrite_ipv6_prefix_remap test2.rewrite_pad test2.rewrite_trunc \
 		test2.rewrite_mac test2.rewrite_layer2 test2.rewrite_config \
 		test2.rewrite_skip test2.rewrite_dltuser test2.rewrite_dlthdlc test2.rewrite_dltraw test2.rewrite_nanosec \
 		test2.rewrite_vlan802.1ad test2.rewrite_vlandel test2.rewrite_efcs \
@@ -132,6 +132,8 @@ standard_bigendian:
 		-e 10.10.0.1:10.10.0.2 -c test.auto_router
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_pnat \
 		-N 96.17.211.0/24:172.16.0.0/24
+	$(TCPREWRITE) -i $(srcdir)/test_ipv6_remap.pcap -o test.rewrite_ipv6_prefix_remap \
+		--srcipmap="[2001:db8:8000::/33]:[2001:dbff::/33]"
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_pad -F pad
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_trunc -F trunc
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_mac \
@@ -191,6 +193,8 @@ standard_littleendian:
 		-e 10.10.0.1:10.10.0.2 -c test.auto_router
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_pnat \
 		-N 96.17.211.0/24:172.16.0.0/24
+	$(TCPREWRITE) -i $(srcdir)/test_ipv6_remap.pcap -o test2.rewrite_ipv6_prefix_remap \
+		--srcipmap="[2001:db8:8000::/33]:[2001:dbff::/33]"
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_pad -F pad
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_trunc -F trunc
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_mac \
@@ -246,7 +250,8 @@ tcpprep: auto_router auto_bridge auto_client auto_server auto_first cidr regex \
 	include_packets include_source include_dest
 
 tcprewrite: rewrite_portmap rewrite_range_portmap rewrite_endpoint \
-	rewrite_pnat rewrite_trunc rewrite_pad rewrite_seed rewrite_mac \
+	rewrite_pnat rewrite_ipv6_prefix_remap rewrite_portmap_invalid rewrite_portmap_big \
+	rewrite_trunc rewrite_pad rewrite_seed rewrite_mac \
 	rewrite_layer2 rewrite_config rewrite_skip rewrite_dltuser rewrite_dlthdlc rewrite_dltraw rewrite_nanosec \
 	rewrite_vlan802.1ad rewrite_vlandel rewrite_efcs \
 	rewrite_1ttl rewrite_2ttl rewrite_3ttl rewrite_1ttl-hdrfix rewrite_2ttl-hdrfix rewrite_3ttl-hdrfix \
@@ -615,6 +620,43 @@ rewrite_endpoint:
 	else \
 	    $(PRINTF) "\t\t\t%s\n" "FAILED"; od -Ax -tx1 -v test.$@1 >> test.log; false; \
 	fi
+
+# an IPv6 prefix that isn't a multiple of 8 bits splits a byte between the
+# network and the original address
+rewrite_ipv6_prefix_remap:
+	$(PRINTF) "%s" "[tcprewrite] IPv6 /33 remap test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] IPv6 /33 remap test: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(srcdir)/test_ipv6_remap.pcap -o test.$@1 \
+	    --srcipmap="[2001:db8:8000::/33]:[2001:dbff::/33]" >> test.log 2>&1
+	if diff $(srcdir)/test$(VARIANT).$@ test.$@1 >> test.log 2>&1; then \
+	    $(PRINTF) "\t\t\t%s\n" "OK"; \
+	else \
+	    $(PRINTF) "\t\t\t%s\n" "FAILED"; od -Ax -tx1 -v test.$@1 >> test.log; false; \
+	fi
+
+# a malformed portmap must be refused, not crash (signals are exit 128-254)
+rewrite_portmap_invalid:
+	$(PRINTF) "%s" "[tcprewrite] Invalid portmap test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Invalid portmap test: " >> test.log
+	rc=0; \
+	for spec in "-:80" "+:80" "80:81,+:82"; do \
+	    $(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 -r "$$spec" > test.$@.out 2>&1; \
+	    status=$$?; \
+	    cat test.$@.out >> test.log; \
+	    if [ $$status -eq 0 ] || { [ $$status -ge 128 ] && [ $$status -ne 255 ]; } || \
+	       grep -q "Sanitizer\|runtime error" test.$@.out; then \
+	        $(PRINTF) "%s\n" "ERROR: portmap '$$spec' exited $$status" >> test.log; rc=1; \
+	    fi; \
+	done; \
+	if [ $$rc -eq 0 ] ; then $(PRINTF) "\t\t\t%s\n" "OK"; else $(PRINTF) "\t\t\t%s\n" "FAILED"; false; fi
+
+# each port in a range is a list node: 4 full ranges is 262,148 nodes
+rewrite_portmap_big:
+	$(PRINTF) "%s" "[tcprewrite] Large portmap test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Large portmap test: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 \
+	    -r 0-65535:1,0-65535:2,0-65535:3,0-65535:4 >> test.log 2>&1; \
+	if [ $$? -eq 0 ] ; then $(PRINTF) "\t\t\t%s\n" "OK"; else $(PRINTF) "\t\t\t%s\n" "FAILED"; false; fi
 
 rewrite_pnat:
 	$(PRINTF) "%s" "[tcprewrite] Pseudo NAT test: "

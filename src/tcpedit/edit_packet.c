@@ -765,6 +765,7 @@ static int
 remap_ipv6(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, struct tcpr_in6_addr *addr)
 {
     uint32_t i, j, k;
+    uint8_t mask;
 
     assert(tcpedit);
     assert(cidr);
@@ -785,11 +786,9 @@ remap_ipv6(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, struct tcpr_in6_addr *addr)
     if ((k = cidr->masklen % 8) == 0)
         return 1;
 
-    k = (uint32_t)~0 << (8 - k);
-    i = addr->tcpr_s6_addr[i] & k;
-
-    addr->tcpr_s6_addr[i] =
-            (cidr->u.network6.tcpr_s6_addr[j] & (0xff << (8 - k))) | (addr->tcpr_s6_addr[i] & (0xff >> k));
+    /* byte j is split: its top k bits come from the network, the rest are kept */
+    mask = (uint8_t)(0xff << (8 - k));
+    addr->tcpr_s6_addr[j] = (cidr->u.network6.tcpr_s6_addr[j] & mask) | (addr->tcpr_s6_addr[j] & (uint8_t)~mask);
 
     return 1;
 }
