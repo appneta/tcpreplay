@@ -183,7 +183,7 @@ nodist_tcpreplayinclude_HEADERS = defines.h config.h
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libtcpreplay.pc
 
-tcpliveplay_CFLAGS = $(LIBOPTS_CFLAGS) -I$(srcdir)/.. $(LNAV_CFLAGS) -DTCPREPLAY -DTCPLIVEPLAY @PTHREAD_CFLAGS@
+tcpliveplay_CFLAGS = $(LIBOPTS_CFLAGS) -I$(srcdir)/.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPREPLAY -DTCPLIVEPLAY @PTHREAD_CFLAGS@
 tcpliveplay_SOURCES = tcpliveplay_opts.c tcpliveplay.c
 tcpliveplay_LDADD = ./common/libcommon.a $(LIBSTRL) @LPCAPLIB@ @LDNETLIB@ $(LIBOPTS_LDADD)
 tcpliveplay_OBJECTS: tcpliveplay_opts.h

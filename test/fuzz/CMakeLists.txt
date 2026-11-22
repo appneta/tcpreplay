@@ -25,6 +25,9 @@ foreach(_t ${TCPR_FUZZ_TARGETS})
     target_include_directories(${_t} PRIVATE
         ${TCPR_GENERATED_INCLUDE_DIRS} ${TCPR_SOURCE_INCLUDE_DIRS}
         ${CMAKE_CURRENT_SOURCE_DIR})
+    if(DNET_CFLAGS)
+        target_compile_options(${_t} PRIVATE ${DNET_CFLAGS})
+    endif()
     if(_t STREQUAL fuzz_tcpedit)
         # tcpedit.h/portmap.h live in src/tcpedit; the generated
         # tcprewrite_opts.h is already reachable through src/.
