@@ -45,7 +45,7 @@ endif
 
 EXTRA_DIST = wirecheck.sh mtu_matrix.sh mtu_check_jumbo.py gen_jumbo_pcap.py xdp_truncated.sh \
 		replay_order.sh order_compare.py \
-		test.pcap test_jumbo.pcap test_nano.pcap test_fragroute.pcap test_fuzz_short_payload.pcap test_ipv6_remap.pcap test_xdp_truncated.pcap test_flow_hbh_trunc.pcap $(TRUNC_L4_PCAPS) $(GROW_PCAPS) \
+		test.pcap test_jumbo.pcap test_nano.pcap test_fragroute.pcap test_arp_sll.pcap test_fuzz_short_payload.pcap test_ipv6_remap.pcap test_xdp_truncated.pcap test_flow_hbh_trunc.pcap $(TRUNC_L4_PCAPS) $(GROW_PCAPS) \
 		test.auto_bridge test.auto_client test.auto_router \
 		test.auto_server test.auto_first test.cidr test.comment test.port test.mac \
 		test.cidr_reverse test.mac_reverse test.regex_reverse \
@@ -258,7 +258,7 @@ tcprewrite: rewrite_portmap rewrite_range_portmap rewrite_endpoint \
 	rewrite_tos rewrite_mtutrunc rewrite_enet_subsmac rewrite_mac_seed \
 	rewrite_mac_seed_keep rewrite_l7fuzzing rewrite_sequence rewrite_fixcsum \
 	rewrite_fixlen_pad rewrite_fixlen_trunc rewrite_fixlen_del \
-	rewrite_dltuser_maxsnaplen rewrite_cache_short $(FRAGROUTE_TESTS)
+	rewrite_dltuser_maxsnaplen rewrite_cache_short rewrite_seed_arp_dlt $(FRAGROUTE_TESTS)
 
 tcpreplay: replay_wirecheck replay_mtu_jumbo replay_mtu_small replay_ordering replay_basic replay_nano_timer replay_cache \
 	replay_pps replay_rate replay_top \
@@ -940,6 +940,26 @@ rewrite_tos:
 	    $(PRINTF) "\t\t\t\t%s\n" "OK"; \
 	else \
 	    $(PRINTF) "\t\t\t\t%s\n" "FAILED"; od -Ax -tx1 -v test.$@1 >> test.log; false; \
+	fi
+
+# --seed on an ARP request converted from Linux SLL (16-byte L2) to Ethernet
+# (14-byte L2): both IPs must change, and the ARP header and both MACs must not.
+# Checked field by field because --seed's output depends on host byte order.
+rewrite_seed_arp_dlt:
+	$(PRINTF) "%s" "[tcprewrite] ARP seed with DLT conversion test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] ARP seed with DLT conversion test: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(srcdir)/test_arp_sll.pcap -o test.$@1 --dlt=enet \
+	    --enet-dmac=00:01:02:03:04:05 --enet-smac=00:01:02:03:04:06 --seed=7 >> test.log 2>&1
+	f=test.$@1; \
+	hdr=`od -An -tx1 -j 54 -N 8 $$f | tr -d ' \n'`; smac=`od -An -tx1 -j 62 -N 6 $$f | tr -d ' \n'`; \
+	sip=`od -An -tx1 -j 68 -N 4 $$f | tr -d ' \n'`; tmac=`od -An -tx1 -j 72 -N 6 $$f | tr -d ' \n'`; \
+	tip=`od -An -tx1 -j 78 -N 4 $$f | tr -d ' \n'`; \
+	$(PRINTF) "%s\n" "arp=$$hdr smac=$$smac sip=$$sip tmac=$$tmac tip=$$tip" >> test.log; \
+	if [ "$$hdr" = 0001080006040001 ] && [ "$$smac" = 0011223344aa ] && [ "$$tmac" = aabbccddeeff ] && \
+	   [ "$$sip" != 0a010101 ] && [ "$$tip" != 0a020202 ]; then \
+	    $(PRINTF) "\t%s\n" "OK"; \
+	else \
+	    $(PRINTF) "\t%s\n" "FAILED"; false; \
 	fi
 
 # a cache for 20 packets used on a 259-packet capture must be refused, not

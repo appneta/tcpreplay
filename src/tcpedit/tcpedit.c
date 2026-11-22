@@ -309,15 +309,13 @@ again:
 
             /* ARP packets */
         } else if (l2proto == htons(ETHERTYPE_ARP)) {
-            if (direction == TCPR_DIR_C2S) {
-                if (randomize_iparp(tcpedit, *pkthdr, packet, tcpedit->runtime.dlt1, (int)(*pkthdr)->caplen - l2len) <
-                    0)
-                    return TCPEDIT_ERROR;
-            } else {
-                if (randomize_iparp(tcpedit, *pkthdr, packet, tcpedit->runtime.dlt2, (int)(*pkthdr)->caplen - l2len) <
-                    0)
-                    return TCPEDIT_ERROR;
-            }
+            /*
+             * l2len is the length of the L2 header now on the packet. Deriving
+             * it again from the input DLT put the ARP header at the wrong
+             * offset whenever --dlt changed the L2 header.
+             */
+            if (randomize_iparp(tcpedit, *pkthdr, packet, l2len, (int)(*pkthdr)->caplen - l2len) < 0)
+                return TCPEDIT_ERROR;
         }
     }
 
