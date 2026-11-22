@@ -19,6 +19,8 @@ WIRECHECK=$(srcdir)/wirecheck.sh
 # replays against dummy interfaces at MTUs the default test NIC never
 # exercises, to catch #1079/#1090-class bugs (#1097)
 MTU_MATRIX=$(srcdir)/mtu_matrix.sh
+# replays a truncated capture over AF_XDP on a throwaway veth pair
+XDP_TRUNCATED=$(srcdir)/xdp_truncated.sh
 
 TEST_PCAP=$(srcdir)/test.pcap
 # frames sized either side of TX_RING's old 4096-byte truncation point (#1079)
@@ -31,6 +33,9 @@ FRAGROUTE_PCAP=$(srcdir)/test_fragroute.pcap
 # replay buffer ends where the packet does (an overrun shows up under ASan)
 TRUNC_L4_PCAPS = test_trunc_ipv6_plen.pcap test_trunc_udp_frag.pcap \
 		test_trunc_tcp.pcap test_trunc_ipv6_udp.pcap
+# edits that grow a packet: snaplen == captured length, so libpcap's buffer
+# ends where the packet does and writing past it shows up under ASan
+GROW_PCAPS = test_grow_pad.pcap test_grow_vlan.pcap test_maxsnaplen_raw.pcap
 
 if COMPILE_FRAGROUTE
 FRAGROUTE_TESTS = fragroute_valid fragroute_negsize fragroute_badrules
@@ -38,9 +43,9 @@ else
 FRAGROUTE_TESTS =
 endif
 
-EXTRA_DIST = wirecheck.sh mtu_matrix.sh mtu_check_jumbo.py gen_jumbo_pcap.py \
+EXTRA_DIST = wirecheck.sh mtu_matrix.sh mtu_check_jumbo.py gen_jumbo_pcap.py xdp_truncated.sh \
 		replay_order.sh order_compare.py \
-		test.pcap test_jumbo.pcap test_nano.pcap test_fragroute.pcap $(TRUNC_L4_PCAPS) \
+		test.pcap test_jumbo.pcap test_nano.pcap test_fragroute.pcap test_xdp_truncated.pcap $(TRUNC_L4_PCAPS) $(GROW_PCAPS) \
 		test.auto_bridge test.auto_client test.auto_router \
 		test.auto_server test.auto_first test.cidr test.comment test.port test.mac \
 		test.cidr_reverse test.mac_reverse test.regex_reverse \
@@ -248,13 +253,13 @@ tcprewrite: rewrite_portmap rewrite_range_portmap rewrite_endpoint \
 	rewrite_tos rewrite_mtutrunc rewrite_enet_subsmac rewrite_mac_seed \
 	rewrite_mac_seed_keep rewrite_l7fuzzing rewrite_sequence rewrite_fixcsum \
 	rewrite_fixlen_pad rewrite_fixlen_trunc rewrite_fixlen_del \
-	$(FRAGROUTE_TESTS)
+	rewrite_dltuser_maxsnaplen $(FRAGROUTE_TESTS)
 
 tcpreplay: replay_wirecheck replay_mtu_jumbo replay_mtu_small replay_ordering replay_basic replay_nano_timer replay_cache \
 	replay_pps replay_rate replay_top \
 	replay_config replay_multi replay_pps_multi replay_precache \
 	replay_stats replay_dualfile replay_maxsleep replay_include replay_exclude replay_unique_ip \
-	replay_edit_trunc_l4
+	replay_edit_trunc_l4 replay_edit_grow replay_xdp_truncated
 
 # re-run the whole tcpreplay test group with the io_uring injection method;
 # not part of 'make test' - CI invokes it explicitly on Linux builds
@@ -474,6 +479,17 @@ replay_wirecheck:
 # #1097: the default test NIC never exercises an MTU that reproduces #1079
 # (jumbo) or #1090 (small, the IPv6 minimum). Linux-only (dummy interfaces);
 # skips cleanly elsewhere.
+# AF_XDP must send only the captured bytes of a truncated packet. Linux with
+# libxdp only; skips cleanly elsewhere.
+replay_xdp_truncated:
+	$(PRINTF) "%s" "[tcpreplay] AF_XDP truncated capture test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay] AF_XDP truncated capture test: " >> test.log
+	$(XDP_TRUNCATED) test.log $(TCPREPLAY) $(ENABLE_DEBUG); \
+	rc=$$?; \
+	if [ $$rc -eq 0 ] ; then $(PRINTF) "\t%s\n" "OK"; \
+	elif [ $$rc -eq 77 ] ; then $(PRINTF) "\t%s\n" "SKIPPED"; \
+	else $(PRINTF) "\t%s\n" "FAILED"; tail -n 20 test.log >&2; false; fi
+
 replay_mtu_jumbo:
 	$(PRINTF) "%s" "[tcpreplay] Jumbo MTU (9000) test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Jumbo MTU (9000) test: " >> test.log
@@ -533,6 +549,18 @@ replay_edit_trunc_l4:
 	    $(PRINTF) "%s\n" "--- $$t" >> test.log; \
 	    $(TCPREPLAY_EDIT) $(ENABLE_DEBUG) -i $(nic1) $$1 $(srcdir)/$$2 >> test.log 2>&1 || rc=1; \
 	done; \
+	if [ $$rc -eq 0 ] ; then $(PRINTF) "\t%s\n" "OK"; else $(PRINTF) "\t%s\n" "FAILED"; false; fi
+
+replay_edit_grow:
+	$(PRINTF) "%s" "[tcpreplay-edit] Packet growing edits test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay-edit] Packet growing edits test: " >> test.log
+	rc=0; \
+	$(TCPREPLAY_EDIT) $(ENABLE_DEBUG) -i $(nic1) --fixlen=pad \
+		$(srcdir)/test_grow_pad.pcap >> test.log 2>&1 || rc=1; \
+	$(TCPREPLAY_EDIT) $(ENABLE_DEBUG) -i $(nic1) --preload-pcap --fixlen=pad \
+		$(srcdir)/test_grow_pad.pcap >> test.log 2>&1 || rc=1; \
+	$(TCPREPLAY_EDIT) $(ENABLE_DEBUG) -i $(nic1) --enet-vlan=add --enet-vlan-tag=5 \
+		$(srcdir)/test_grow_vlan.pcap >> test.log 2>&1 || rc=1; \
 	if [ $$rc -eq 0 ] ; then $(PRINTF) "\t%s\n" "OK"; else $(PRINTF) "\t%s\n" "FAILED"; false; fi
 
 replay_accurate:
@@ -854,6 +882,16 @@ rewrite_tos:
 	else \
 	    $(PRINTF) "\t\t\t\t%s\n" "FAILED"; od -Ax -tx1 -v test.$@1 >> test.log; false; \
 	fi
+
+# a MAX_SNAPLEN frame given a 255-byte user L2 header would exceed MAXPACKET;
+# it must be refused (written unedited), not overflow the buffer
+rewrite_dltuser_maxsnaplen:
+	$(PRINTF) "%s" "[tcprewrite] DLT User max length test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] DLT User max length test: " >> test.log
+	dlink=aa; i=1; while [ $$i -lt 255 ]; do dlink="$$dlink,aa"; i=`expr $$i + 1`; done; \
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(srcdir)/test_maxsnaplen_raw.pcap -o test.$@1 \
+		--dlt=user --user-dlt=147 --user-dlink=$$dlink >> test.log 2>&1; \
+	if [ $$? -eq 0 ] ; then $(PRINTF) "\t\t%s\n" "OK"; else $(PRINTF) "\t\t%s\n" "FAILED"; false; fi
 
 rewrite_mtutrunc:
 	$(PRINTF) "%s" "[tcprewrite] MTU Truncate test: "
