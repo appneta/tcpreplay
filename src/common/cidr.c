@@ -187,8 +187,9 @@ cidr2cidr(char *cidr)
 
     if (family == AF_INET) {
         /* masklen better be 0 =< masklen <= 32 */
-        if (newcidr->masklen > 32)
+        if (newcidr->masklen < 0 || newcidr->masklen > 32) {
             goto error;
+        }
 
         /* copy in the ip address */
         memset(networkip, '\0', 16);
@@ -418,6 +419,16 @@ done:
 }
 
 /**
+ * host-order netmask for an IPv4 prefix length
+ */
+uint32_t
+cidr_mask4(int masklen)
+{
+    /* a 32-bit shift by 32 (/0) is undefined */
+    return masklen <= 0 ? 0 : 0xffffffffU << (32 - masklen);
+}
+
+/**
  * checks to see if the ip address is in the cidr
  * returns 1 for true, 0 for false
  */
@@ -437,10 +448,7 @@ ip_in_cidr(const tcpr_cidr_t *mycidr, const unsigned long ip)
     if (mycidr->masklen == 0 && mycidr->u.network == 0)
         return 1;
 
-    mask = ~0; /* turn on all the bits */
-
-    /* shift over by the correct number of bits */
-    mask = mask << (32 - mycidr->masklen);
+    mask = cidr_mask4(mycidr->masklen);
 
     /* apply the mask to the network and ip */
     ipaddr = ntohl(ip) & mask;
