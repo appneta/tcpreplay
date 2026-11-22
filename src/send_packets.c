@@ -607,8 +607,12 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             if (ctx->abort) {
                 break;
             }
-            /* The first packet is already in memory */
-            prepare_first_element_of_batch(ctx, &packetnum, pktdata, pkthdr.len);
+            /*
+             * The first packet is already in memory. pktlen, not pkthdr.len:
+             * only caplen bytes were captured, and anything beyond them would
+             * be copied out of the heap and onto the wire.
+             */
+            prepare_first_element_of_batch(ctx, &packetnum, pktdata, (u_int32_t)pktlen);
             /* Read more packets and prepare batch */
             prepare_remaining_elements_of_batch(ctx, &packetnum, &read_next_packet, pcap, &idx, pkthdr, prev_packet);
         }
@@ -1486,11 +1490,17 @@ prepare_remaining_elements_of_batch(tcpreplay_t *ctx,
     unsigned int pckt_count = 1;
     while (!ctx->abort && (pckt_count < sp->batch_size) &&
            (pktdata = get_next_packet(ctx->options, pcap, &pkthdr, *idx, prev_packet)) != NULL) {
-        fill_umem_with_data_and_set_xdp_desc(sp, sp->tx_idx + pckt_count, *packetnum, pktdata, pkthdr.len);
+        /* as in send_packets(): never send more than was captured */
+        u_int32_t len = ctx->options->use_pkthdr_len ? pkthdr.len : pkthdr.caplen;
+
+        if (len > pkthdr.caplen)
+            len = pkthdr.caplen;
+
+        fill_umem_with_data_and_set_xdp_desc(sp, sp->tx_idx + pckt_count, *packetnum, pktdata, len);
         ++pckt_count;
         ++*packetnum;
-        stats->bytes_sent += pkthdr.len;
-        sp->bytes_sent += pkthdr.len;
+        stats->bytes_sent += len;
+        sp->bytes_sent += len;
         stats->pkts_sent++;
         if (ctx->options->flow_stats && !preload) {
             update_flow_stats(ctx, ctx->options->cache_packets ? sp : NULL, &pkthdr, pktdata, datalink, *packetnum);

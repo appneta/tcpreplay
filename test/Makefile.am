@@ -19,6 +19,8 @@ WIRECHECK=$(srcdir)/wirecheck.sh
 # replays against dummy interfaces at MTUs the default test NIC never
 # exercises, to catch #1079/#1090-class bugs (#1097)
 MTU_MATRIX=$(srcdir)/mtu_matrix.sh
+# replays a truncated capture over AF_XDP on a throwaway veth pair
+XDP_TRUNCATED=$(srcdir)/xdp_truncated.sh
 
 TEST_PCAP=$(srcdir)/test.pcap
 # frames sized either side of TX_RING's old 4096-byte truncation point (#1079)
@@ -37,9 +39,9 @@ else
 FRAGROUTE_TESTS =
 endif
 
-EXTRA_DIST = wirecheck.sh mtu_matrix.sh mtu_check_jumbo.py gen_jumbo_pcap.py \
+EXTRA_DIST = wirecheck.sh mtu_matrix.sh mtu_check_jumbo.py gen_jumbo_pcap.py xdp_truncated.sh \
 		replay_order.sh order_compare.py \
-		test.pcap test_jumbo.pcap test_nano.pcap test_fragroute.pcap $(GROW_PCAPS) \
+		test.pcap test_jumbo.pcap test_nano.pcap test_fragroute.pcap test_xdp_truncated.pcap $(GROW_PCAPS) \
 		test.auto_bridge test.auto_client test.auto_router \
 		test.auto_server test.auto_first test.cidr test.comment test.port test.mac \
 		test.cidr_reverse test.mac_reverse test.regex_reverse \
@@ -253,7 +255,7 @@ tcpreplay: replay_wirecheck replay_mtu_jumbo replay_mtu_small replay_ordering re
 	replay_pps replay_rate replay_top \
 	replay_config replay_multi replay_pps_multi replay_precache \
 	replay_stats replay_dualfile replay_maxsleep replay_include replay_exclude replay_unique_ip \
-	replay_edit_grow
+	replay_edit_grow replay_xdp_truncated
 
 # re-run the whole tcpreplay test group with the io_uring injection method;
 # not part of 'make test' - CI invokes it explicitly on Linux builds
@@ -473,6 +475,17 @@ replay_wirecheck:
 # #1097: the default test NIC never exercises an MTU that reproduces #1079
 # (jumbo) or #1090 (small, the IPv6 minimum). Linux-only (dummy interfaces);
 # skips cleanly elsewhere.
+# AF_XDP must send only the captured bytes of a truncated packet. Linux with
+# libxdp only; skips cleanly elsewhere.
+replay_xdp_truncated:
+	$(PRINTF) "%s" "[tcpreplay] AF_XDP truncated capture test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay] AF_XDP truncated capture test: " >> test.log
+	$(XDP_TRUNCATED) test.log $(TCPREPLAY) $(ENABLE_DEBUG); \
+	rc=$$?; \
+	if [ $$rc -eq 0 ] ; then $(PRINTF) "\t%s\n" "OK"; \
+	elif [ $$rc -eq 77 ] ; then $(PRINTF) "\t%s\n" "SKIPPED"; \
+	else $(PRINTF) "\t%s\n" "FAILED"; tail -n 20 test.log >&2; false; fi
+
 replay_mtu_jumbo:
 	$(PRINTF) "%s" "[tcpreplay] Jumbo MTU (9000) test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Jumbo MTU (9000) test: " >> test.log
