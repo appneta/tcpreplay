@@ -74,9 +74,12 @@ ip6_opt_open(int argc, char *argv[])
         }
 
         for (; j < argc; i++, j++) {
-            if (addr_aton(argv[j], &opt->u.route.addr[i]) < 0 || opt->u.route.addr[i].addr_type != ADDR_TYPE_IP6) {
+            /* numeric only: addr_aton() falls back to a DNS lookup */
+            if (ip6_pton(argv[j], &opt->u.route.addr[i].addr_ip6) < 0) {
                 return (ip6_opt_close(opt));
             }
+            opt->u.route.addr[i].addr_type = ADDR_TYPE_IP6;
+            opt->u.route.addr[i].addr_bits = IP6_ADDR_BITS;
         }
     } else if (strcasecmp(argv[1], "raw") == 0) {
         opt->type = OPT6_TYPE_RAW;
