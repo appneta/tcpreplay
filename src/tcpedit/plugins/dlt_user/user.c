@@ -239,6 +239,20 @@ dlt_user_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
     if (plugin->config_size < sizeof(*config))
         return TCPEDIT_ERROR;
 
+    if (pktlen < ctx->l2len) {
+        tcpedit_seterr(ctx->tcpedit, "Packet length %d is less than L2 length %d", pktlen, ctx->l2len);
+        return TCPEDIT_ERROR;
+    }
+
+    /* the caller's buffer is MAXPACKET; a user L2 header can be up to USER_L2MAXLEN bytes */
+    if (pktlen - ctx->l2len + config->length > MAXPACKET) {
+        tcpedit_seterr(ctx->tcpedit,
+                       "New frame too big, new length %d exceeds %d",
+                       pktlen - ctx->l2len + config->length,
+                       MAXPACKET);
+        return TCPEDIT_ERROR;
+    }
+
     /* Make room for our new l2 header if l2len != config->length */
     if (ctx->l2len > config->length) {
         memmove(packet + config->length, packet + ctx->l2len, pktlen - ctx->l2len);
