@@ -101,7 +101,13 @@ REWRITE_WARN = "little"
 VARIANT="2"
 endif
 
-standard: standard_prep $(STANDARD_REWRITE)
+if HAVE_PCAP_NANO
+STANDARD_NANOSEC = standard_nanosec
+else
+STANDARD_NANOSEC =
+endif
+
+standard: standard_prep $(STANDARD_REWRITE) $(STANDARD_NANOSEC)
 	$(PRINTF) "Warning: only creating %s endian standard test files\n" $(REWRITE_WARN)
 
 standard_prep:
@@ -123,6 +129,9 @@ standard_prep:
 	$(TCPPREP) -i $(TEST_PCAP) -o test.include_packets -c '96.17.211.0/24' --include 'P:61-65,88-91'
 	$(TCPPREP) -i $(TEST_PCAP) -o test.include_source -c '96.17.211.0/24' --include 'S:96.0.0.0/8'
 	$(TCPPREP) -i $(TEST_PCAP) -o test.include_dest -c '96.17.211.0/24' --include 'D:96.0.0.0/8'
+
+standard_nanosec:
+	$(TCPREWRITE) -i $(srcdir)/test_nano.pcap -o test$(VARIANT).rewrite_nanosec
 
 standard_bigendian:
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_seed -s 55
@@ -161,7 +170,6 @@ standard_bigendian:
 		--hdlc-control=0 --hdlc-address=0x0F
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_dltraw --dlt=raw \
 		--skip-soft-errors
-	$(TCPREWRITE) -i $(srcdir)/test_nano.pcap -o test.rewrite_nanosec
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_vlan802.1ad \
 		--enet-vlan=add --enet-vlan-tag=42 --enet-vlan-cfi=1 \
 		--enet-vlan-pri=2 --enet-vlan-proto=802.1ad
@@ -222,7 +230,6 @@ standard_littleendian:
 		--hdlc-control=0 --hdlc-address=0x0F
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_dltraw --dlt=raw \
 		--skip-soft-errors
-	$(TCPREWRITE) -i $(srcdir)/test_nano.pcap -o test2.rewrite_nanosec
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_vlan802.1ad \
 		--enet-vlan=add --enet-vlan-tag=42 --enet-vlan-cfi=1 \
 		--enet-vlan-pri=2 --enet-vlan-proto=802.1ad
@@ -842,6 +849,7 @@ rewrite_dltraw:
 	    $(PRINTF) "\t\t\t%s\n" "FAILED"; od -Ax -tx1 -v test.$@1 >> test.log; false; \
 	fi
 
+if HAVE_PCAP_NANO
 rewrite_nanosec:
 	$(PRINTF) "%s" "[tcprewrite] Nanosecond timestamp test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Nanosecond timestamp test: " >> test.log
@@ -851,6 +859,12 @@ rewrite_nanosec:
 	else \
 	    $(PRINTF) "\t%s\n" "FAILED"; od -Ax -tx1 -v test.$@1 >> test.log; false; \
 	fi
+else
+rewrite_nanosec:
+	$(PRINTF) "%s" "[tcprewrite] Nanosecond timestamp test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Nanosecond timestamp test: libpcap lacks nanosecond support" >> test.log
+	$(PRINTF) "\t%s\n" "SKIPPED"
+endif
 
 rewrite_vlan802.1ad:
 	$(PRINTF) "%s" "[tcprewrite] VLAN 802.1ad test: "
