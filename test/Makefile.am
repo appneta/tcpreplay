@@ -265,6 +265,7 @@ tcprewrite: rewrite_portmap rewrite_range_portmap rewrite_endpoint \
 	rewrite_pnat rewrite_ipv6_prefix_remap rewrite_portmap_invalid rewrite_portmap_big \
 	rewrite_jnpr_ether \
 	rewrite_arp_align \
+	rewrite_fuzz_edits_once \
 	rewrite_cidr_invalid \
 	rewrite_trunc rewrite_pad rewrite_seed rewrite_mac \
 	rewrite_layer2 rewrite_config rewrite_skip rewrite_dltuser rewrite_dlthdlc rewrite_dltraw rewrite_nanosec \
@@ -731,6 +732,22 @@ capinfo_big_packet:
 	$(TCPCAPINFO) $(srcdir)/test_capinfo_big.pcap > test.$@.out 2>&1; \
 	cat test.$@.out >> test.log; \
 	if [ "$$(grep -c 'OK$$' test.$@.out)" -eq 2 ] && ! grep -q "TOOBIG\|truncated\|corrupt" test.$@.out; then \
+	    $(PRINTF) "\t\t%s\n" "OK"; \
+	else \
+	    $(PRINTF) "\t\t%s\n" "FAILED"; false; \
+	fi
+
+# --fuzz-seed re-ran every edit on every packet (#1185): with a fuzz factor so
+# large that nothing is mutated, the output must match the same edits without it
+rewrite_fuzz_edits_once:
+	$(PRINTF) "%s" "[tcprewrite] Fuzz edits once test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Fuzz edits once test: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 --ttl=+5 \
+		--enet-vlan=add --enet-vlan-tag=42 --enet-vlan-cfi=0 --enet-vlan-pri=0 >> test.log 2>&1; \
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@2 --ttl=+5 \
+		--enet-vlan=add --enet-vlan-tag=42 --enet-vlan-cfi=0 --enet-vlan-pri=0 \
+		--fuzz-seed=1 --fuzz-factor=1000000 >> test.log 2>&1; \
+	if cmp test.$@1 test.$@2 >> test.log 2>&1; then \
 	    $(PRINTF) "\t\t%s\n" "OK"; \
 	else \
 	    $(PRINTF) "\t\t%s\n" "FAILED"; false; \
