@@ -19,6 +19,8 @@ WIRECHECK=$(srcdir)/wirecheck.sh
 # replays against dummy interfaces at MTUs the default test NIC never
 # exercises, to catch #1079/#1090-class bugs (#1097)
 MTU_MATRIX=$(srcdir)/mtu_matrix.sh
+# tcpreplay-edit must decode a capture with its own DLT, not the NIC's
+REPLAY_EDIT_DLT=$(srcdir)/replay_edit_dlt.sh
 # replays a truncated capture over AF_XDP on a throwaway veth pair
 XDP_TRUNCATED=$(srcdir)/xdp_truncated.sh
 
@@ -43,9 +45,9 @@ else
 FRAGROUTE_TESTS =
 endif
 
-EXTRA_DIST = wirecheck.sh mtu_matrix.sh mtu_check_jumbo.py gen_jumbo_pcap.py xdp_truncated.sh \
+EXTRA_DIST = wirecheck.sh mtu_matrix.sh mtu_check_jumbo.py gen_jumbo_pcap.py replay_edit_dlt.sh xdp_truncated.sh \
 		replay_order.sh order_compare.py \
-		test.pcap test_jumbo.pcap test_nano.pcap test_fragroute.pcap test_arp_sll.pcap test_fuzz_short_payload.pcap test_ipv6_remap.pcap test_xdp_truncated.pcap test_flow_hbh_trunc.pcap $(TRUNC_L4_PCAPS) $(GROW_PCAPS) \
+		test.pcap test_jumbo.pcap test_nano.pcap test_fragroute.pcap test_sll_ipv4.pcap test_arp_sll.pcap test_fuzz_short_payload.pcap test_ipv6_remap.pcap test_xdp_truncated.pcap test_flow_hbh_trunc.pcap $(TRUNC_L4_PCAPS) $(GROW_PCAPS) \
 		test.auto_bridge test.auto_client test.auto_router \
 		test.auto_server test.auto_first test.cidr test.comment test.port test.mac \
 		test.cidr_reverse test.mac_reverse test.regex_reverse \
@@ -264,7 +266,7 @@ tcpreplay: replay_wirecheck replay_mtu_jumbo replay_mtu_small replay_ordering re
 	replay_pps replay_rate replay_top \
 	replay_config replay_multi replay_pps_multi replay_precache \
 	replay_stats replay_dualfile replay_maxsleep replay_include replay_exclude replay_unique_ip \
-	replay_edit_trunc_l4 replay_edit_grow replay_xdp_truncated replay_flow_hbh_trunc replay_edit_fuzz_short
+	replay_edit_trunc_l4 replay_edit_grow replay_xdp_truncated replay_flow_hbh_trunc replay_edit_fuzz_short replay_edit_dlt
 
 # re-run the whole tcpreplay test group with the io_uring injection method;
 # not part of 'make test' - CI invokes it explicitly on Linux builds
@@ -494,6 +496,17 @@ replay_xdp_truncated:
 	if [ $$rc -eq 0 ] ; then $(PRINTF) "\t%s\n" "OK"; \
 	elif [ $$rc -eq 77 ] ; then $(PRINTF) "\t%s\n" "SKIPPED"; \
 	else $(PRINTF) "\t%s\n" "FAILED"; tail -n 20 test.log >&2; false; fi
+
+# a Linux SLL capture replayed onto an Ethernet NIC with --dlt=enet and --ttl
+# must go out converted and edited; skips without tcpdump
+replay_edit_dlt:
+	$(PRINTF) "%s" "[tcpreplay-edit] Capture DLT test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay-edit] Capture DLT test: " >> test.log
+	$(REPLAY_EDIT_DLT) $(nic1) test.log $(TCPREPLAY_EDIT) $(ENABLE_DEBUG); \
+	rc=$$?; \
+	if [ $$rc -eq 0 ] ; then $(PRINTF) "\t\t%s\n" "OK"; \
+	elif [ $$rc -eq 77 ] ; then $(PRINTF) "\t\t%s\n" "SKIPPED"; \
+	else $(PRINTF) "\t\t%s\n" "FAILED"; tail -n 20 test.log >&2; false; fi
 
 replay_mtu_jumbo:
 	$(PRINTF) "%s" "[tcpreplay] Jumbo MTU (9000) test: "

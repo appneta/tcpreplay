@@ -51,6 +51,7 @@ timestamp_trace_entry_t timestamp_trace_entry_array[TRACE_MAX_ENTRIES];
 #include "tcpedit/tcpedit.h"
 #include "tcpreplay_edit_opts.h"
 extern tcpedit_t *tcpedit;
+void tcpreplay_edit_set_dlt(int dlt);
 #else
 #include "tcpreplay_opts.h"
 #endif /* TCPREPLAY_EDIT */
@@ -409,6 +410,10 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     bool now_is_now = true;
     bool read_next_packet = true; // used for LIBXDP batch packet processing with cached packets
 
+#if defined TCPREPLAY && defined TCPREPLAY_EDIT
+    tcpreplay_edit_set_dlt(datalink);
+#endif
+
     get_current_time(&now);
     if (!timesisset(&stats->start_time)) {
         TIMESPEC_SET(&stats->start_time, &now);
@@ -740,6 +745,16 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     bool top_speed = (options->speed.mode == speed_topspeed ||
                       (options->speed.mode == speed_mbpsrate && options->speed.speed == 0));
     bool now_is_now = true;
+
+#if defined TCPREPLAY && defined TCPREPLAY_EDIT
+    /* one tcpedit context edits both captures, so they must share a DLT */
+    if (options->file_cache[cache_file_idx1].dlt != options->file_cache[cache_file_idx2].dlt)
+        errx(-1,
+             "--dualfile captures must have the same DLT to be edited: %s and %s",
+             pcap_datalink_val_to_name(options->file_cache[cache_file_idx1].dlt),
+             pcap_datalink_val_to_name(options->file_cache[cache_file_idx2].dlt));
+    tcpreplay_edit_set_dlt(options->file_cache[cache_file_idx1].dlt);
+#endif
 
     get_current_time(&now);
     if (!timesisset(&stats->start_time)) {
