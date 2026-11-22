@@ -299,6 +299,7 @@ static void
 ipv6_addr_csum_replace(ipv6_hdr_t *ip6_hdr, struct tcpr_in6_addr *old_ip, struct tcpr_in6_addr *new_ip, int l3len)
 {
     uint8_t *l4, protocol;
+    uint32_t old32[4], new32[4];
     int need;
 
     assert(ip6_hdr);
@@ -332,7 +333,10 @@ ipv6_addr_csum_replace(ipv6_hdr_t *ip6_hdr, struct tcpr_in6_addr *old_ip, struct
     if (l4 + need > (uint8_t *)ip6_hdr + l3len)
         return;
 
-    ipv6_l34_csum_replace(l4, protocol, (uint32_t *)old_ip, (uint32_t *)new_ip);
+    /* csum_replace16() reads 32-bit words; the addresses may be unaligned in the packet */
+    memcpy(old32, old_ip, sizeof(old32));
+    memcpy(new32, new_ip, sizeof(new32));
+    ipv6_l34_csum_replace(l4, protocol, old32, new32);
 }
 
 /**

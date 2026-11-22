@@ -59,10 +59,14 @@ ip_opt_open(int argc, char *argv[])
     opt->opt_data.rr.ptr = i;
 
     for (i = 3, j = 0; i < argc && j < 9; i++, j++) {
+        ip_addr_t addr;
+
         /* numeric only: addr_aton() falls back to a DNS lookup */
-        if (ip_pton(argv[i], &opt->opt_data.rr.iplist[j]) < 0) {
+        if (ip_pton(argv[i], &addr) < 0) {
             return (ip_opt_close(opt));
         }
+        /* iplist[] is in a packed struct: assign rather than hand ip_pton() its address */
+        opt->opt_data.rr.iplist[j] = addr;
     }
     opt->opt_len = IP_OPT_LEN + 1 + (IP_ADDR_LEN * j);
 
