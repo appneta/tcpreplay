@@ -264,6 +264,7 @@ tcpprep: auto_router auto_bridge auto_client auto_server auto_first cidr regex \
 tcprewrite: rewrite_portmap rewrite_range_portmap rewrite_endpoint \
 	rewrite_pnat rewrite_ipv6_prefix_remap rewrite_portmap_invalid rewrite_portmap_big \
 	rewrite_jnpr_ether \
+	rewrite_arp_align \
 	rewrite_fuzz_edits_once \
 	rewrite_cidr_invalid \
 	rewrite_trunc rewrite_pad rewrite_seed rewrite_mac \
@@ -692,6 +693,24 @@ rewrite_portmap_invalid:
 	    fi; \
 	done; \
 	if [ $$rc -eq 0 ] ; then $(PRINTF) "\t\t\t%s\n" "OK"; else $(PRINTF) "\t\t\t%s\n" "FAILED"; false; fi
+
+# ARP addresses aren't 4-byte aligned: -N and --seed read and wrote them through
+# uint32_t pointers. clang's UBSan flags that (#1190); the output is covered by
+# the rewrite_pnat/rewrite_seed golden files.
+rewrite_arp_align:
+	$(PRINTF) "%s" "[tcprewrite] ARP alignment test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] ARP alignment test: " >> test.log
+	rc=0; \
+	for args in "-N 10.0.0.0/8:172.16.0.0/12" "-s 55"; do \
+	    $(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 $$args > test.$@.out 2>&1; \
+	    status=$$?; \
+	    cat test.$@.out >> test.log; \
+	    if [ $$status -ne 0 ] || grep -q "Sanitizer\|runtime error" test.$@.out; then \
+	        $(PRINTF) "%s\n" "ERROR: tcprewrite $$args exited $$status" >> test.log; rc=1; \
+	    fi; \
+	done; \
+	if [ $$rc -eq 0 ] ; then $(PRINTF) "\t\t%s\n" "OK"; else $(PRINTF) "\t\t%s\n" "FAILED"; false; fi
+
 
 # only pcap 2.4 is supported, but the check accepted 2.3 and 9.4 (#1187)
 capinfo_version:
