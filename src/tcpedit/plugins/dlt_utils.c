@@ -258,9 +258,14 @@ tcpedit_dlt_copy_decoder_state(tcpeditdlt_t *ctx, tcpeditdlt_t *subctx)
     memcpy(&ctx->srcmac, &subctx->srcmac, MAX_MAC_LEN);
     memcpy(&ctx->dstmac, &subctx->dstmac, MAX_MAC_LEN);
 
-    /* just need to copy the ptr */
-    ctx->decoded_extra = subctx->decoded_extra;
-    ctx->decoded_extra_size = subctx->decoded_extra_size;
+    /* copy the contents: each context frees its own decoded_extra */
+    if (subctx->decoded_extra_size > 0) {
+        if (ctx->decoded_extra_size < subctx->decoded_extra_size) {
+            ctx->decoded_extra = safe_realloc(ctx->decoded_extra, subctx->decoded_extra_size);
+            ctx->decoded_extra_size = subctx->decoded_extra_size;
+        }
+        memcpy(ctx->decoded_extra, subctx->decoded_extra, subctx->decoded_extra_size);
+    }
 
     /*
      * the first decoder should of already specified it's l2len, so we need to

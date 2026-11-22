@@ -43,6 +43,13 @@
 static char dlt_name[] = "jnpr_eth";
 static uint16_t dlt_value = DLT_JUNIPER_ETHER;
 
+/* the 2-byte big-endian extension length, without assuming the host byte order */
+static int
+jnpr_ext_len(const u_char *packet)
+{
+    return (packet[JUNIPER_ETHER_EXTLEN_OFFSET] << 8) | packet[JUNIPER_ETHER_EXTLEN_OFFSET + 1];
+}
+
 /*
  * Function to register ourselves.  This function is always called, regardless
  * of what DLT types are being used, so it shouldn't be allocating extra buffers
@@ -230,9 +237,7 @@ dlt_jnpr_ether_decode(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
     }
 
     /* then get the Juniper header length */
-    memcpy(&extensions_len, &packet[JUNIPER_ETHER_EXTLEN_OFFSET], 2);
-
-    extensions_len = ntohs(extensions_len);
+    extensions_len = jnpr_ext_len(packet);
     jnpr_header_len = extensions_len + JUNIPER_ETHER_HEADER_LEN;
 
     dbgx(1, "jnpr header len: %d", jnpr_header_len);
@@ -328,9 +333,7 @@ dlt_jnpr_ether_proto(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
     }
 
     /* then get the Juniper header length */
-    memcpy(&jnpr_hdr_len, &packet[JUNIPER_ETHER_EXTLEN_OFFSET], 2);
-
-    jnpr_hdr_len = ntohs(jnpr_hdr_len) + JUNIPER_ETHER_HEADER_LEN;
+    jnpr_hdr_len = jnpr_ext_len(packet) + JUNIPER_ETHER_HEADER_LEN;
     if (jnpr_hdr_len > pktlen) {
         tcpedit_seterr(ctx->tcpedit,
                        "Juniper header length %d invalid: it is greater than packet length %d",
@@ -408,9 +411,7 @@ dlt_jnpr_ether_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_cha
     config = (jnpr_ether_config_t *)ctx->decoder->config;
 
     /* first get the Juniper header length */
-    memcpy(&jnpr_hdr_len, &packet[JUNIPER_ETHER_EXTLEN_OFFSET], 2);
-
-    jnpr_hdr_len = ntohs(jnpr_hdr_len) + JUNIPER_ETHER_HEADER_LEN;
+    jnpr_hdr_len = jnpr_ext_len(packet) + JUNIPER_ETHER_HEADER_LEN;
     ethernet = packet + jnpr_hdr_len;
 
     return dlt_en10mb_get_mac(config->subctx, mac, ethernet, (pktlen - jnpr_hdr_len));
@@ -434,9 +435,7 @@ dlt_jnpr_ether_l2len(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
     config = (jnpr_ether_config_t *)ctx->decoder->config;
 
     /* first get the Juniper header length */
-    memcpy(&len, &packet[JUNIPER_ETHER_EXTLEN_OFFSET], 2);
-
-    len = ntohs(len) + JUNIPER_ETHER_HEADER_LEN;
+    len = jnpr_ext_len(packet) + JUNIPER_ETHER_HEADER_LEN;
     dbgx(3, "juniper header len: %u", len);
 
     /* add the 802.3 length */

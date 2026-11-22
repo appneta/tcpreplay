@@ -47,7 +47,7 @@ endif
 
 EXTRA_DIST = wirecheck.sh mtu_matrix.sh mtu_check_jumbo.py gen_jumbo_pcap.py replay_edit_dlt.sh xdp_truncated.sh \
 		replay_order.sh order_compare.py \
-		test.pcap test_jumbo.pcap test_nano.pcap test_fragroute.pcap test_sll_ipv4.pcap test_arp_sll.pcap test_fuzz_short_payload.pcap test_ipv6_remap.pcap test_xdp_truncated.pcap test_flow_hbh_trunc.pcap $(TRUNC_L4_PCAPS) $(GROW_PCAPS) \
+		test.pcap test_jumbo.pcap test_nano.pcap test_fragroute.pcap test_sll_ipv4.pcap test_arp_sll.pcap test_fuzz_short_payload.pcap test_ipv6_remap.pcap test_xdp_truncated.pcap test_flow_hbh_trunc.pcap test_jnpr_ether.pcap $(TRUNC_L4_PCAPS) $(GROW_PCAPS) \
 		test.auto_bridge test.auto_client test.auto_router \
 		test.auto_server test.auto_first test.cidr test.comment test.port test.mac \
 		test.cidr_reverse test.mac_reverse test.regex_reverse \
@@ -260,6 +260,7 @@ tcpprep: auto_router auto_bridge auto_client auto_server auto_first cidr regex \
 
 tcprewrite: rewrite_portmap rewrite_range_portmap rewrite_endpoint \
 	rewrite_pnat rewrite_ipv6_prefix_remap rewrite_portmap_invalid rewrite_portmap_big \
+	rewrite_jnpr_ether \
 	rewrite_trunc rewrite_pad rewrite_seed rewrite_mac \
 	rewrite_layer2 rewrite_config rewrite_skip rewrite_dltuser rewrite_dlthdlc rewrite_dltraw rewrite_nanosec \
 	rewrite_vlan802.1ad rewrite_vlandel rewrite_efcs \
@@ -686,6 +687,23 @@ rewrite_portmap_invalid:
 	    fi; \
 	done; \
 	if [ $$rc -eq 0 ] ; then $(PRINTF) "\t\t\t%s\n" "OK"; else $(PRINTF) "\t\t\t%s\n" "FAILED"; false; fi
+
+# Juniper Ethernet -> Ethernet must strip the 12-byte Juniper header (6 fixed,
+# 6 of extensions) and keep the frame intact. Compares packet bytes only (past
+# the 24-byte file and 16-byte record headers), so it holds for either byte
+# order; the extension length was read as 0 on big-endian hosts (#1189)
+rewrite_jnpr_ether:
+	$(PRINTF) "%s" "[tcprewrite] Juniper Ethernet test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Juniper Ethernet test: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(srcdir)/test_jnpr_ether.pcap -o test.$@1 --dlt=enet >> test.log 2>&1; \
+	status=$$?; \
+	tail -c +41 test.$@1 > test.$@.got 2>/dev/null; \
+	tail -c +53 $(srcdir)/test_jnpr_ether.pcap > test.$@.want; \
+	if [ $$status -eq 0 ] && cmp test.$@.want test.$@.got >> test.log 2>&1; then \
+	    $(PRINTF) "\t\t%s\n" "OK"; \
+	else \
+	    $(PRINTF) "\t\t%s\n" "FAILED"; od -Ax -tx1 -v test.$@1 >> test.log; false; \
+	fi
 
 # each port in a range is a list node: 4 full ranges is 262,148 nodes
 rewrite_portmap_big:
