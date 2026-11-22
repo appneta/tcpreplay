@@ -21,7 +21,7 @@
 # ASan that aborts.
 #
 # AF_XDP needs a driver that supports it, so this runs on a throwaway veth
-# pair. It skips (77) off Linux, without --xdp support, without root, or when
+# pair. It skips (77) off Linux, with --io-uring, without --xdp support, without root, or when
 # the AF_XDP socket can't be set up - tcpreplay falls back to another injector
 # then, which would make a pass meaningless.
 #
@@ -44,6 +44,13 @@ if [ "$(uname -s)" != "Linux" ]; then
     echo "xdp_truncated: AF_XDP is Linux-only, skipping" >> "$logfile"
     exit 77
 fi
+
+for arg in "$@"; do
+    if [ "$arg" = "--io-uring" ]; then
+        echo "xdp_truncated: --io-uring excludes --xdp, skipping" >> "$logfile"
+        exit 77
+    fi
+done
 
 if ! "$1" --help 2>&1 | grep -q -- '--xdp'; then
     echo "xdp_truncated: built without AF_XDP support, skipping" >> "$logfile"
