@@ -1045,9 +1045,6 @@ int
 randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, const u_char *pktdata, int l2len, int l3len)
 {
     arp_hdr_t *arp_hdr;
-#ifdef FORCE_ALIGN
-    uint32_t iptemp;
-#endif
 
     assert(tcpedit);
     assert(pkthdr);
@@ -1066,7 +1063,7 @@ randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, const u_char *pk
     if ((ntohs(arp_hdr->ar_pro) == ETHERTYPE_IP) &&
         ((ntohs(arp_hdr->ar_op) == ARPOP_REQUEST) || (ntohs(arp_hdr->ar_op) == ARPOP_REPLY))) {
         /* jump to the addresses */
-        uint32_t *ip;
+        uint32_t ip;
         u_char *add_hdr;
 
         /*
@@ -1080,32 +1077,16 @@ randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, const u_char *pk
             return TCPEDIT_OK;
         }
 
+        /* the addresses needn't be 4-byte aligned: work on copies */
         add_hdr = ((u_char *)arp_hdr) + sizeof(arp_hdr_t) + arp_hdr->ar_hln;
-
-#ifdef FORCE_ALIGN
-        /* copy IP to a temporary buffer for processing */
-        memcpy(&iptemp, add_hdr, sizeof(uint32_t));
-        ip = &iptemp;
-#else
-        ip = (uint32_t *)add_hdr;
-#endif
-        *ip = randomize_ipv4_addr(tcpedit, *ip);
-#ifdef FORCE_ALIGN
-        memcpy(add_hdr, &iptemp, sizeof(uint32_t));
-#endif
+        memcpy(&ip, add_hdr, sizeof(ip));
+        ip = randomize_ipv4_addr(tcpedit, ip);
+        memcpy(add_hdr, &ip, sizeof(ip));
 
         add_hdr += arp_hdr->ar_pln + arp_hdr->ar_hln;
-#ifdef FORCE_ALIGN
-        /* copy IP2 to a temporary buffer for processing */
-        memcpy(&iptemp, add_hdr, sizeof(uint32_t));
-        ip = &iptemp;
-#else
-        ip = (uint32_t *)add_hdr;
-#endif
-        *ip = randomize_ipv4_addr(tcpedit, *ip);
-#ifdef FORCE_ALIGN
-        memcpy(add_hdr, &iptemp, sizeof(uint32_t));
-#endif
+        memcpy(&ip, add_hdr, sizeof(ip));
+        ip = randomize_ipv4_addr(tcpedit, ip);
+        memcpy(add_hdr, &ip, sizeof(ip));
     }
 
     return 1; /* yes we changed the packet */
@@ -1122,14 +1103,10 @@ randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, const u_char *pk
 int
 rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode, int l3len)
 {
-    u_char *add_hdr = NULL;
-    uint32_t *ip1 = NULL, *ip2 = NULL;
-    uint32_t newip = 0;
+    u_char *ip1_p, *ip2_p;
+    uint32_t ip1, ip2;
     tcpr_cidrmap_t *cidrmap1 = NULL, *cidrmap2 = NULL;
     int didsrc = 0, diddst = 0, loop = 1;
-#ifdef FORCE_ALIGN
-    uint32_t iptemp;
-#endif
 
     assert(tcpedit);
     assert(arp_hdr);
@@ -1164,52 +1141,36 @@ rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode, int l3len)
             return (0);
         }
 
-        /* jump to the addresses */
-        add_hdr = (u_char *)arp_hdr;
-        add_hdr += sizeof(arp_hdr_t) + arp_hdr->ar_hln;
-        ip1 = (uint32_t *)add_hdr;
-        add_hdr += arp_hdr->ar_pln + arp_hdr->ar_hln;
-#ifdef FORCE_ALIGN
-        /* copy IP2 to a temporary buffer for processing */
-        memcpy(&iptemp, add_hdr, sizeof(uint32_t));
-        ip2 = &iptemp;
-#else
-        ip2 = (uint32_t *)add_hdr;
-#endif
+        /* the addresses needn't be 4-byte aligned: work on copies */
+        ip1_p = (u_char *)arp_hdr + sizeof(arp_hdr_t) + arp_hdr->ar_hln;
+        ip2_p = ip1_p + arp_hdr->ar_pln + arp_hdr->ar_hln;
+        memcpy(&ip1, ip1_p, sizeof(ip1));
+        memcpy(&ip2, ip2_p, sizeof(ip2));
 
         /* loop through the cidrmap to rewrite */
         do {
             /* arp request ? */
             if (ntohs(arp_hdr->ar_op) == ARPOP_REQUEST) {
-                if ((!diddst) && ip_in_cidr(cidrmap2->from, *ip1)) {
-                    newip = remap_ipv4(tcpedit, cidrmap2->to, *ip1);
-                    memcpy(ip1, &newip, 4);
+                if ((!diddst) && ip_in_cidr(cidrmap2->from, ip1)) {
+                    ip1 = remap_ipv4(tcpedit, cidrmap2->to, ip1);
                     diddst = 1;
                 }
-                if ((!didsrc) && ip_in_cidr(cidrmap1->from, *ip2)) {
-                    newip = remap_ipv4(tcpedit, cidrmap1->to, *ip2);
-                    memcpy(ip2, &newip, 4);
+                if ((!didsrc) && ip_in_cidr(cidrmap1->from, ip2)) {
+                    ip2 = remap_ipv4(tcpedit, cidrmap1->to, ip2);
                     didsrc = 1;
                 }
             }
             /* else it's an arp reply */
             else {
-                if ((!diddst) && ip_in_cidr(cidrmap2->from, *ip2)) {
-                    newip = remap_ipv4(tcpedit, cidrmap2->to, *ip2);
-                    memcpy(ip2, &newip, 4);
+                if ((!diddst) && ip_in_cidr(cidrmap2->from, ip2)) {
+                    ip2 = remap_ipv4(tcpedit, cidrmap2->to, ip2);
                     diddst = 1;
                 }
-                if ((!didsrc) && ip_in_cidr(cidrmap1->from, *ip1)) {
-                    newip = remap_ipv4(tcpedit, cidrmap1->to, *ip1);
-                    memcpy(ip1, &newip, 4);
+                if ((!didsrc) && ip_in_cidr(cidrmap1->from, ip1)) {
+                    ip1 = remap_ipv4(tcpedit, cidrmap1->to, ip1);
                     didsrc = 1;
                 }
             }
-
-#ifdef FORCE_ALIGN
-            /* copy temporary IP to IP2 location in buffer */
-            memcpy(add_hdr, &iptemp, sizeof(uint32_t));
-#endif
 
             /*
              * loop while we haven't modified both src/dst AND
@@ -1228,6 +1189,9 @@ rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode, int l3len)
             }
 
         } while (loop);
+
+        memcpy(ip1_p, &ip1, sizeof(ip1));
+        memcpy(ip2_p, &ip2, sizeof(ip2));
 
     } else {
         warn("ARP packet isn't for IPv4!  Can't rewrite IP's");
