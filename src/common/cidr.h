@@ -42,6 +42,7 @@ struct tcpr_cidrmap_s {
 typedef struct tcpr_cidrmap_s tcpr_cidrmap_t;
 
 int ip_in_cidr(const tcpr_cidr_t *, const unsigned long);
+uint32_t cidr_mask4(int masklen);
 int check_ip_cidr(tcpr_cidr_t *, const unsigned long);
 int check_ip6_cidr(tcpr_cidr_t *, const struct tcpr_in6_addr *addr);
 int parse_cidr(tcpr_cidr_t **, char *, char *delim);
