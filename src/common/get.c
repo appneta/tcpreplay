@@ -305,6 +305,21 @@ get_l2len_protocol(const u_char *pktdata,
 
     switch (datalink) {
     case DLT_NULL:
+        /* a 4-byte address family (in the capturing host's byte order) precedes the IP header */
+        if (datalen < 5) {
+            warnx("%s (0x%x): Need at least 5 bytes but only %u available",
+                  pcap_datalink_val_to_description(datalink),
+                  datalink,
+                  datalen);
+            return -1;
+        }
+        *l2len = 4;
+        if ((pktdata[4] >> 4) == 4) {
+            *protocol = ETHERTYPE_IP;
+        } else if ((pktdata[4] >> 4) == 6) {
+            *protocol = ETHERTYPE_IP6;
+        }
+        break;
     case DLT_RAW:
         if ((pktdata[0] >> 4) == 4)
             *protocol = ETHERTYPE_IP;

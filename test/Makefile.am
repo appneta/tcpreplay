@@ -47,7 +47,7 @@ endif
 
 EXTRA_DIST = wirecheck.sh mtu_matrix.sh mtu_check_jumbo.py gen_jumbo_pcap.py replay_edit_dlt.sh xdp_truncated.sh \
 		replay_order.sh order_compare.py \
-		test.pcap test_jumbo.pcap test_nano.pcap test_fragroute.pcap test_sll_ipv4.pcap test_arp_sll.pcap test_fuzz_short_payload.pcap test_ipv6_remap.pcap test_xdp_truncated.pcap test_flow_hbh_trunc.pcap $(TRUNC_L4_PCAPS) $(GROW_PCAPS) \
+		test.pcap test_jumbo.pcap test_nano.pcap test_fragroute.pcap test_sll_ipv4.pcap test_arp_sll.pcap test_fuzz_short_payload.pcap test_ipv6_remap.pcap test_xdp_truncated.pcap test_flow_hbh_trunc.pcap test_dlt_null.pcap test_dlt_raw_flows.pcap $(TRUNC_L4_PCAPS) $(GROW_PCAPS) \
 		test.auto_bridge test.auto_client test.auto_router \
 		test.auto_server test.auto_first test.cidr test.comment test.port test.mac \
 		test.cidr_reverse test.mac_reverse test.regex_reverse \
@@ -256,7 +256,7 @@ standard_littleendian:
 tcpprep: auto_router auto_bridge auto_client auto_server auto_first cidr regex \
 	port mac comment print_info print_comment prep_config \
 	mac_reverse cidr_reverse regex_reverse exclude_packets \
-	include_packets include_source include_dest
+	include_packets include_source include_dest prep_dlt_null
 
 tcprewrite: rewrite_portmap rewrite_range_portmap rewrite_endpoint \
 	rewrite_pnat rewrite_ipv6_prefix_remap rewrite_portmap_invalid rewrite_portmap_big \
@@ -686,6 +686,20 @@ rewrite_portmap_invalid:
 	    fi; \
 	done; \
 	if [ $$rc -eq 0 ] ; then $(PRINTF) "\t\t\t%s\n" "OK"; else $(PRINTF) "\t\t\t%s\n" "FAILED"; false; fi
+
+# DLT_NULL's 4-byte address-family header was read as the IP header, so its
+# packets were never seen as IP (#1188). The same packets as DLT_RAW must be
+# classified identically.
+prep_dlt_null:
+	$(PRINTF) "%s" "[tcpprep] DLT_NULL test: "
+	$(PRINTF) "%s\n" "*** [tcpprep] DLT_NULL test: " >> test.log
+	$(TCPPREP) -i $(srcdir)/test_dlt_raw_flows.pcap -o test.$@.raw -c 10.0.0.0/8 >> test.log 2>&1; \
+	$(TCPPREP) -i $(srcdir)/test_dlt_null.pcap -o test.$@.null -c 10.0.0.0/8 >> test.log 2>&1; \
+	if cmp test.$@.raw test.$@.null >> test.log 2>&1; then \
+	    $(PRINTF) "\t\t\t%s\n" "OK"; \
+	else \
+	    $(PRINTF) "\t\t\t%s\n" "FAILED"; false; \
+	fi
 
 # each port in a range is a list node: 4 full ranges is 262,148 nodes
 rewrite_portmap_big:
