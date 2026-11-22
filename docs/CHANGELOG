@@ -1,4 +1,4 @@
-11/21/2026 Version 4.6.3
+11/22/2026 Version 4.6.3
     - fragroute: fix a signed overflow formatting the delay in the print module
       (OSS-Fuzz 578324118, #1175)
     - fragroute: free queued packets in fragroute_close() and between packets; the
