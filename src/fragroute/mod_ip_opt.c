@@ -28,7 +28,6 @@ void *
 ip_opt_open(int argc, char *argv[])
 {
     struct ip_opt *opt;
-    struct addr addr;
     int i, j;
 
     if (argc < 4)
@@ -60,10 +59,10 @@ ip_opt_open(int argc, char *argv[])
     opt->opt_data.rr.ptr = i;
 
     for (i = 3, j = 0; i < argc && j < 9; i++, j++) {
-        if (addr_aton(argv[i], &addr) < 0) {
+        /* numeric only: addr_aton() falls back to a DNS lookup */
+        if (ip_pton(argv[i], &opt->opt_data.rr.iplist[j]) < 0) {
             return (ip_opt_close(opt));
         }
-        opt->opt_data.rr.iplist[j] = addr.addr_ip;
     }
     opt->opt_len = IP_OPT_LEN + 1 + (IP_ADDR_LEN * j);
 
@@ -81,7 +80,7 @@ ip_opt_apply(void *d, struct pktq *pktq)
     {
         uint16_t eth_type = htons(pkt->pkt_eth->eth_type);
 
-        if (eth_type == ETH_TYPE_IP) {
+        if (eth_type == ETH_TYPE_IP && ip_can_add_option(pkt)) {
             len = ip_add_option(pkt->pkt_ip,
                                 pkt->pkt_buf + pkt->pkt_buf_size - (u_char *)pkt->pkt_ip,
                                 IP_PROTO_IP,
