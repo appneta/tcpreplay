@@ -746,10 +746,7 @@ remap_ipv4(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, uint32_t original)
     if (tcpedit->skip_broadcast && is_multicast_ipv4(original))
         return original;
 
-    mask = 0xffffffff; /* turn on all the bits */
-
-    /* shift over by correct # of bits */
-    mask = mask << (32 - cidr->masklen);
+    mask = cidr_mask4(cidr->masklen);
 
     /* apply the mask to the network */
     network = htonl(cidr->u.network) & mask;
