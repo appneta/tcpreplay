@@ -14,6 +14,7 @@ TCPREPLAY=../src/tcpreplay
 TCPREPLAY_EDIT=../src/tcpreplay-edit
 TCPREWRITE=../src/tcprewrite
 TCPBRIDGE=../src/tcpbridge
+TCPCAPINFO=../src/tcpcapinfo
 # verifies packets a replay reported as sent actually reached the wire (#1094)
 WIRECHECK=$(srcdir)/wirecheck.sh
 # replays against dummy interfaces at MTUs the default test NIC never
@@ -47,7 +48,7 @@ endif
 
 EXTRA_DIST = wirecheck.sh mtu_matrix.sh mtu_check_jumbo.py gen_jumbo_pcap.py replay_edit_dlt.sh xdp_truncated.sh \
 		replay_order.sh order_compare.py \
-		test.pcap test_jumbo.pcap test_nano.pcap test_fragroute.pcap test_sll_ipv4.pcap test_arp_sll.pcap test_fuzz_short_payload.pcap test_ipv6_remap.pcap test_xdp_truncated.pcap test_flow_hbh_trunc.pcap $(TRUNC_L4_PCAPS) $(GROW_PCAPS) \
+		test.pcap test_jumbo.pcap test_nano.pcap test_fragroute.pcap test_sll_ipv4.pcap test_arp_sll.pcap test_fuzz_short_payload.pcap test_ipv6_remap.pcap test_xdp_truncated.pcap test_flow_hbh_trunc.pcap test_capinfo_v23.pcap test_capinfo_v94.pcap test_capinfo_big.pcap $(TRUNC_L4_PCAPS) $(GROW_PCAPS) \
 		test.auto_bridge test.auto_client test.auto_router \
 		test.auto_server test.auto_first test.cidr test.comment test.port test.mac \
 		test.cidr_reverse test.mac_reverse test.regex_reverse \
@@ -82,7 +83,7 @@ EXTRA_DIST = wirecheck.sh mtu_matrix.sh mtu_check_jumbo.py gen_jumbo_pcap.py rep
 		test2.replay_unique_ip test2.replay_include test2.replay_exclude
 
 test: all
-all: clearlog check tcpprep tcpreplay tcprewrite
+all: clearlog check tcpprep tcpreplay tcprewrite tcpcapinfo
 
 clearlog:
 	-rm test.log
@@ -252,6 +253,8 @@ standard_littleendian:
 	$(TCPREPLAY) -w test2.replay_include -t --include=7,11,20-23,174- $(TEST_PCAP)
 	$(TCPREPLAY) -w test2.replay_exclude -t --exclude=23-,11-20,2,3 $(TEST_PCAP)
 	$(TCPREPLAY) -w test2.replay_unique_ip -t --unique-ip --loop=2 $(TEST_PCAP)
+
+tcpcapinfo: capinfo_version capinfo_big_packet
 
 tcpprep: auto_router auto_bridge auto_client auto_server auto_first cidr regex \
 	port mac comment print_info print_comment prep_config \
@@ -686,6 +689,31 @@ rewrite_portmap_invalid:
 	    fi; \
 	done; \
 	if [ $$rc -eq 0 ] ; then $(PRINTF) "\t\t\t%s\n" "OK"; else $(PRINTF) "\t\t\t%s\n" "FAILED"; false; fi
+
+# only pcap 2.4 is supported, but the check accepted 2.3 and 9.4 (#1187)
+capinfo_version:
+	$(PRINTF) "%s" "[tcpcapinfo] Version check test: "
+	$(PRINTF) "%s\n" "*** [tcpcapinfo] Version check test: " >> test.log
+	rc=0; \
+	for f in test_capinfo_v23.pcap test_capinfo_v94.pcap; do \
+	    $(TCPCAPINFO) $(srcdir)/$$f > test.$@.out 2>&1; \
+	    cat test.$@.out >> test.log; \
+	    grep -q "only support file format version 2.4" test.$@.out || rc=1; \
+	done; \
+	if [ $$rc -eq 0 ] ; then $(PRINTF) "\t\t%s\n" "OK"; else $(PRINTF) "\t\t%s\n" "FAILED"; false; fi
+
+# a packet bigger than tcpcapinfo's 64 KB buffer but within the snaplen: the
+# rest of it was then parsed as record headers (#1187)
+capinfo_big_packet:
+	$(PRINTF) "%s" "[tcpcapinfo] Large packet test: "
+	$(PRINTF) "%s\n" "*** [tcpcapinfo] Large packet test: " >> test.log
+	$(TCPCAPINFO) $(srcdir)/test_capinfo_big.pcap > test.$@.out 2>&1; \
+	cat test.$@.out >> test.log; \
+	if [ "$$(grep -c 'OK$$' test.$@.out)" -eq 2 ] && ! grep -q "TOOBIG\|truncated\|corrupt" test.$@.out; then \
+	    $(PRINTF) "\t\t%s\n" "OK"; \
+	else \
+	    $(PRINTF) "\t\t%s\n" "FAILED"; false; \
+	fi
 
 # each port in a range is a list node: 4 full ranges is 262,148 nodes
 rewrite_portmap_big:
