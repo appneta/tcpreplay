@@ -55,6 +55,36 @@ tcpreplay_t *ctx;
 
 static void flow_stats(const tcpreplay_t *tcpr_ctx);
 
+#ifdef TCPREPLAY_EDIT
+/*
+ * tcpedit decodes every packet with the plugin for the DLT it was initialised
+ * with, so that must be the capture's DLT, not the output interface's. main()
+ * initialises it with the interface's DLT only so the edit options are checked
+ * before anything is sent; this re-initialises it for each capture that
+ * differs.
+ */
+void
+tcpreplay_edit_set_dlt(int dlt)
+{
+    if (tcpedit->runtime.dlt1 == dlt)
+        return;
+
+    tcpedit_close(&tcpedit);
+    if (tcpedit_init(&tcpedit, dlt) < 0)
+        errx(-1,
+             "Error initializing tcpedit for %s captures: %s",
+             pcap_datalink_val_to_name(dlt),
+             tcpedit_geterr(tcpedit));
+
+    /* any warning was already printed when main() parsed these */
+    if (tcpedit_post_args(tcpedit) < 0)
+        errx(-1, "Unable to parse args: %s", tcpedit_geterr(tcpedit));
+
+    if (tcpedit_validate(tcpedit) < 0)
+        errx(-1, "Unable to edit packets given options:\n%s", tcpedit_geterr(tcpedit));
+}
+#endif
+
 int
 main(int argc, char *argv[])
 {

@@ -83,6 +83,22 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len, const u_char 
         ip_hl = ipv4->ip_hl << 2;
     }
 
+    /* len comes from the packet's own length field; never checksum past what was captured */
+    switch (proto) {
+    case IPPROTO_TCP:
+    case IPPROTO_TCP_V6FRAG:
+    case IPPROTO_UDP:
+    case IPPROTO_ICMP:
+    case IPPROTO_ICMP6:
+        if (end_ptr == NULL || len > end_ptr - (data + ip_hl)) {
+            tcpedit_setwarn(tcpedit, "%s", "Unable to checksum packet: L4 length exceeds captured data");
+            return TCPEDIT_WARN;
+        }
+        break;
+    default:
+        break;
+    }
+
     switch (proto) {
     case IPPROTO_TCP:
     case IPPROTO_TCP_V6FRAG:
