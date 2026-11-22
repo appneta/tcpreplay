@@ -31,6 +31,7 @@
     - fragroute, tcpedit: don't access IPv4/IPv6 addresses through unaligned pointers
       (gcc -Waddress-of-packed-member; can fault on strict-alignment CPUs) (#1213)
     - test: fix the big-endian rewrite_dltraw and rewrite_nanosec golden files (#1194)
+    - test: skip the nanosecond tests when libpcap lacks nanosecond support (< 1.5) (#1215)
     - test: add an ASan-checked regression test for each fix above
     - ci: run the test workflow on pull requests (#1198)
     - ci: add a musl (Alpine) build and test workflow (#1172)
