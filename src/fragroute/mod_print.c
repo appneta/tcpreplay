@@ -412,7 +412,7 @@ timerntoa(struct timeval *tv)
     static char buf[128];
     uint64_t usec;
 
-    usec = (tv->tv_sec * 1000000) + tv->tv_usec;
+    usec = ((uint64_t)tv->tv_sec * 1000000) + (uint64_t)tv->tv_usec;
 
     snprintf(buf, sizeof(buf), "%d.%03d ms", (int)(usec / 1000), (int)(usec % 1000));
 
