@@ -26,6 +26,10 @@
       --dualfile captures must now share a DLT to be edited (#1193)
     - build: fix the libdnet include path for tcpliveplay, examples and the fuzz/unit
       tests, and --enable-asan with clang (#1178)
+    - build: find libopts' <stdnoreturn.h> substitute in out-of-tree and CMake builds
+      with gcc < 4.7 (#1214)
+    - fragroute, tcpedit: don't access IPv4/IPv6 addresses through unaligned pointers
+      (gcc -Waddress-of-packed-member; can fault on strict-alignment CPUs) (#1213)
     - test: fix the big-endian rewrite_dltraw and rewrite_nanosec golden files (#1194)
     - test: add an ASan-checked regression test for each fix above
     - ci: run the test workflow on pull requests (#1198)
