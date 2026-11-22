@@ -115,7 +115,7 @@ fragroute_getfragment(fragroute_t *ctx, char **packet)
     static struct pkt *pkt = NULL;
     static struct pkt *next = NULL;
     char *pkt_data = *packet;
-    u_int32_t length;
+    size_t length;
 
     if (ctx->first_packet != 0) {
         pkt = next;
@@ -124,13 +124,30 @@ fragroute_getfragment(fragroute_t *ctx, char **packet)
         pkt = TAILQ_FIRST(ctx->pktq);
     }
 
-    if (pkt != TAILQ_END(&(ctx->pktq))) {
+    while (pkt != TAILQ_END(&(ctx->pktq))) {
         next = TAILQ_NEXT(pkt, pkt_next);
-        memcpy(pkt_data, pkt->pkt_data, pkt->pkt_end - pkt->pkt_data);
+        length = pkt->pkt_end - pkt->pkt_data;
+
+        /*
+         * The caller owns a MAXPACKET buffer (tcprewrite.c, and the fuzz
+         * harness, both size it that way) and hands us only the pointer.
+         * The option-insertion modules grow a packet within its own
+         * allocation, which carries more slack (PKT_BUF_SLACK) than MAXPACKET
+         * has over MAX_SNAPLEN - so a near-MAX_SNAPLEN packet plus an inserted
+         * header (e.g. ip6_opt) can produce a fragment larger than the
+         * caller's buffer.  Drop such a fragment rather than memcpy() past the
+         * end of it; it could not be represented as a pcap record anyway.
+         */
+        if (length > MAXPACKET) {
+            warnx("fragroute: dropping oversized fragment (%zu > %d bytes)", length, MAXPACKET);
+            pkt = next;
+            continue;
+        }
+
+        memcpy(pkt_data, pkt->pkt_data, length);
 
         /* return the original L2 header */
         memcpy(pkt_data, ctx->l2header, ctx->l2len);
-        length = pkt->pkt_end - pkt->pkt_data;
         pkt = next;
         return (int)length;
     }
