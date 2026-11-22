@@ -38,6 +38,10 @@
  *
  * Process a given packet and edit the pkthdr/pktdata structures
  * according to the rules in tcpedit
+ *
+ * Edits happen in place and can grow the packet (padding, VLAN tags, L2
+ * conversion), so *pktdata must be a writable buffer of MAXPACKET bytes.
+ *
  * Returns: TCPEDIT_ERROR on error
  *          TCPEDIT_SOFT_ERROR on remove packet
  *          0 on no change
