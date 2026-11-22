@@ -33,11 +33,23 @@
 #include "mod.h"
 #include "pkt.h"
 
+static void
+fragroute_flush(fragroute_t *ctx)
+{
+    struct pkt *pkt;
+
+    while ((pkt = TAILQ_FIRST(ctx->pktq)) != NULL) {
+        TAILQ_REMOVE(ctx->pktq, pkt, pkt_next);
+        pkt_free(pkt);
+    }
+}
+
 void
 fragroute_close(fragroute_t *ctx)
 {
     assert(ctx);
     mod_close();
+    fragroute_flush(ctx);
     free(ctx->pktq);
     free(ctx);
     pkt_close();
@@ -75,6 +87,7 @@ fragroute_process(fragroute_t *ctx, void *buf, size_t len)
 
     if (pkt->pkt_ip == NULL) {
         strcpy(ctx->errbuf, "skipping non-IP packet");
+        pkt_free(pkt);
         return -1;
     }
     /*  Don't always checksum packets before being fragged
@@ -83,7 +96,7 @@ fragroute_process(fragroute_t *ctx, void *buf, size_t len)
         }
     */
 
-    TAILQ_INIT(ctx->pktq);
+    fragroute_flush(ctx);
     TAILQ_INSERT_TAIL(ctx->pktq, pkt, pkt_next);
 
     mod_apply(ctx->pktq);
@@ -102,7 +115,7 @@ fragroute_getfragment(fragroute_t *ctx, char **packet)
     static struct pkt *pkt = NULL;
     static struct pkt *next = NULL;
     char *pkt_data = *packet;
-    u_int32_t length;
+    size_t length;
 
     if (ctx->first_packet != 0) {
         pkt = next;
@@ -111,13 +124,30 @@ fragroute_getfragment(fragroute_t *ctx, char **packet)
         pkt = TAILQ_FIRST(ctx->pktq);
     }
 
-    if (pkt != TAILQ_END(&(ctx->pktq))) {
+    while (pkt != TAILQ_END(&(ctx->pktq))) {
         next = TAILQ_NEXT(pkt, pkt_next);
-        memcpy(pkt_data, pkt->pkt_data, pkt->pkt_end - pkt->pkt_data);
+        length = pkt->pkt_end - pkt->pkt_data;
+
+        /*
+         * The caller owns a MAXPACKET buffer (tcprewrite.c, and the fuzz
+         * harness, both size it that way) and hands us only the pointer.
+         * The option-insertion modules grow a packet within its own
+         * allocation, which carries more slack (PKT_BUF_SLACK) than MAXPACKET
+         * has over MAX_SNAPLEN - so a near-MAX_SNAPLEN packet plus an inserted
+         * header (e.g. ip6_opt) can produce a fragment larger than the
+         * caller's buffer.  Drop such a fragment rather than memcpy() past the
+         * end of it; it could not be represented as a pcap record anyway.
+         */
+        if (length > MAXPACKET) {
+            warnx("fragroute: dropping oversized fragment (%zu > %d bytes)", length, MAXPACKET);
+            pkt = next;
+            continue;
+        }
+
+        memcpy(pkt_data, pkt->pkt_data, length);
 
         /* return the original L2 header */
         memcpy(pkt_data, ctx->l2header, ctx->l2len);
-        length = pkt->pkt_end - pkt->pkt_data;
         pkt = next;
         return (int)length;
     }
@@ -137,6 +167,7 @@ fragroute_init(const int mtu, const int dlt, const char *config, char *errbuf)
 
     ctx = (fragroute_t *)safe_malloc(sizeof(fragroute_t));
     ctx->pktq = (struct pktq *)safe_malloc(sizeof(struct pktq));
+    TAILQ_INIT(ctx->pktq);
     ctx->dlt = dlt;
 
     pkt_init(128);

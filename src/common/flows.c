@@ -253,6 +253,14 @@ flow_decode(flow_hash_table_t *fht,
 
         if (protocol == 0) {
             struct tcpr_ipv6_ext_hdr_base *ext = (struct tcpr_ipv6_ext_hdr_base *)(ip6_hdr + 1);
+
+            if (pkt_len < required_len + sizeof(*ext)) {
+                warnx("flow_decode: packet " COUNTER_SPEC " needs at least %zd bytes for IPv6 hop-by-hop header but only %d available",
+                      packetnum,
+                      required_len + sizeof(*ext),
+                      pkt_len);
+                return FLOW_ENTRY_INVALID;
+            }
             ip_len += (ext->ip_len + 1) * 8;
             protocol = ext->ip_nh;
         }

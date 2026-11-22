@@ -446,6 +446,25 @@ add_compile_definitions(HAVE_CONFIG_H)
 
 # Common include order: generated headers first, then the source tree
 set(TCPR_GENERATED_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/src ${CMAKE_BINARY_DIR})
+
+# Compilers without <stdnoreturn.h> (gcc < 4.7) get gnulib's substitute, built
+# the way libopts/Makefile.am does: stdnoreturn.in.h with _Noreturn.h spliced
+# in after its marker line (not REGEX REPLACE: _Noreturn.h has backslashes).
+include(CheckIncludeFile)
+check_include_file(stdnoreturn.h HAVE_STDNORETURN_H)
+if(NOT HAVE_STDNORETURN_H)
+    file(READ ${CMAKE_SOURCE_DIR}/libopts/stdnoreturn.in.h _snr_in)
+    file(READ ${CMAKE_SOURCE_DIR}/libopts/_Noreturn.h _snr_noreturn)
+    string(FIND "${_snr_in}" "definition of _Noreturn" _snr_at)
+    string(SUBSTRING "${_snr_in}" ${_snr_at} -1 _snr_tail)
+    string(FIND "${_snr_tail}" "\n" _snr_nl)
+    math(EXPR _snr_at "${_snr_at} + ${_snr_nl} + 1")
+    string(SUBSTRING "${_snr_in}" 0 ${_snr_at} _snr_head)
+    string(SUBSTRING "${_snr_in}" ${_snr_at} -1 _snr_tail)
+    file(WRITE ${CMAKE_BINARY_DIR}/libopts/stdnoreturn.h
+        "/* DO NOT EDIT! GENERATED AUTOMATICALLY! */\n${_snr_head}${_snr_noreturn}${_snr_tail}")
+    list(APPEND TCPR_GENERATED_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libopts)
+endif()
 set(TCPR_SOURCE_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR})
 set(LIBOPTS_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/libopts)
 

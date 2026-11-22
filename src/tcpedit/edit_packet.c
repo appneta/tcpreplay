@@ -299,6 +299,8 @@ static void
 ipv6_addr_csum_replace(ipv6_hdr_t *ip6_hdr, struct tcpr_in6_addr *old_ip, struct tcpr_in6_addr *new_ip, int l3len)
 {
     uint8_t *l4, protocol;
+    uint32_t old32[4], new32[4];
+    int need;
 
     assert(ip6_hdr);
 
@@ -326,7 +328,15 @@ ipv6_addr_csum_replace(ipv6_hdr_t *ip6_hdr, struct tcpr_in6_addr *old_ip, struct
     if (!l4)
         return;
 
-    ipv6_l34_csum_replace(l4, protocol, (uint32_t *)old_ip, (uint32_t *)new_ip);
+    /* get_layer4_v6() only promises l4 is within the packet, not that the header fits */
+    need = protocol == IPPROTO_TCP ? TCPR_TCP_H : protocol == IPPROTO_UDP ? TCPR_UDP_H : 4;
+    if (l4 + need > (uint8_t *)ip6_hdr + l3len)
+        return;
+
+    /* csum_replace16() reads 32-bit words; the addresses may be unaligned in the packet */
+    memcpy(old32, old_ip, sizeof(old32));
+    memcpy(new32, new_ip, sizeof(new32));
+    ipv6_l34_csum_replace(l4, protocol, old32, new32);
 }
 
 /**
@@ -571,10 +581,13 @@ untrunc_packet(tcpedit_t *tcpedit,
         if ((htons(ip_hdr->ip_off) & IP_OFFMASK) != 0) {
             chksum = 0;
         } else if (ip_hdr->ip_p == IPPROTO_UDP && (htons(ip_hdr->ip_off) & IP_MF) != 0) {
-            dataptr = (u_char *)ip_hdr;
-            dataptr += ip_hdr->ip_hl << 2;
-            udp_hdr = (udp_hdr_t *)dataptr;
-            udp_hdr->uh_sum = 0;
+            /* the first fragment may not have captured the whole UDP header */
+            if (pkthdr->caplen >= (uint32_t)l2len + (ip_hdr->ip_hl << 2) + TCPR_UDP_H) {
+                dataptr = (u_char *)ip_hdr;
+                dataptr += ip_hdr->ip_hl << 2;
+                udp_hdr = (udp_hdr_t *)dataptr;
+                udp_hdr->uh_sum = 0;
+            }
             chksum = 0;
         }
     }
@@ -756,6 +769,7 @@ static int
 remap_ipv6(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, struct tcpr_in6_addr *addr)
 {
     uint32_t i, j, k;
+    uint8_t mask;
 
     assert(tcpedit);
     assert(cidr);
@@ -776,11 +790,9 @@ remap_ipv6(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, struct tcpr_in6_addr *addr)
     if ((k = cidr->masklen % 8) == 0)
         return 1;
 
-    k = (uint32_t)~0 << (8 - k);
-    i = addr->tcpr_s6_addr[i] & k;
-
-    addr->tcpr_s6_addr[i] =
-            (cidr->u.network6.tcpr_s6_addr[j] & (0xff << (8 - k))) | (addr->tcpr_s6_addr[i] & (0xff >> k));
+    /* byte j is split: its top k bits come from the network, the rest are kept */
+    mask = (uint8_t)(0xff << (8 - k));
+    addr->tcpr_s6_addr[j] = (cidr->u.network6.tcpr_s6_addr[j] & mask) | (addr->tcpr_s6_addr[j] & (uint8_t)~mask);
 
     return 1;
 }
@@ -1030,10 +1042,9 @@ rewrite_ipv6l3(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr, tcpr_dir_t direction, in
  * return 0 if no change, or 1 for a change
  */
 int
-randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, const u_char *pktdata, int datalink, int l3len)
+randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, const u_char *pktdata, int l2len, int l3len)
 {
     arp_hdr_t *arp_hdr;
-    int l2len;
 #ifdef FORCE_ALIGN
     uint32_t iptemp;
 #endif
@@ -1046,8 +1057,6 @@ randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, const u_char *pk
         tcpedit_seterr(tcpedit, "Unable to randomize ARP packet due to packet capture snap length %u", pkthdr->caplen);
         return TCPEDIT_ERROR;
     }
-
-    l2len = get_l2len(pktdata, (int)pkthdr->caplen, datalink);
 
     arp_hdr = (arp_hdr_t *)(pktdata + l2len);
 
