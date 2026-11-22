@@ -260,6 +260,7 @@ tcpprep: auto_router auto_bridge auto_client auto_server auto_first cidr regex \
 
 tcprewrite: rewrite_portmap rewrite_range_portmap rewrite_endpoint \
 	rewrite_pnat rewrite_ipv6_prefix_remap rewrite_portmap_invalid rewrite_portmap_big \
+	rewrite_fuzz_edits_once \
 	rewrite_trunc rewrite_pad rewrite_seed rewrite_mac \
 	rewrite_layer2 rewrite_config rewrite_skip rewrite_dltuser rewrite_dlthdlc rewrite_dltraw rewrite_nanosec \
 	rewrite_vlan802.1ad rewrite_vlandel rewrite_efcs \
@@ -686,6 +687,22 @@ rewrite_portmap_invalid:
 	    fi; \
 	done; \
 	if [ $$rc -eq 0 ] ; then $(PRINTF) "\t\t\t%s\n" "OK"; else $(PRINTF) "\t\t\t%s\n" "FAILED"; false; fi
+
+# --fuzz-seed re-ran every edit on every packet (#1185): with a fuzz factor so
+# large that nothing is mutated, the output must match the same edits without it
+rewrite_fuzz_edits_once:
+	$(PRINTF) "%s" "[tcprewrite] Fuzz edits once test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Fuzz edits once test: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 --ttl=+5 \
+		--enet-vlan=add --enet-vlan-tag=42 --enet-vlan-cfi=0 --enet-vlan-pri=0 >> test.log 2>&1; \
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@2 --ttl=+5 \
+		--enet-vlan=add --enet-vlan-tag=42 --enet-vlan-cfi=0 --enet-vlan-pri=0 \
+		--fuzz-seed=1 --fuzz-factor=1000000 >> test.log 2>&1; \
+	if cmp test.$@1 test.$@2 >> test.log 2>&1; then \
+	    $(PRINTF) "\t\t%s\n" "OK"; \
+	else \
+	    $(PRINTF) "\t\t%s\n" "FAILED"; false; \
+	fi
 
 # each port in a range is a list node: 4 full ranges is 262,148 nodes
 rewrite_portmap_big:

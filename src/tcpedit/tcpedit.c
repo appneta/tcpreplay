@@ -34,6 +34,84 @@
 #include <sys/types.h>
 
 /**
+ * Point *ip_hdr or *ip6_hdr at the packet's IPv4/IPv6 header (both NULL for
+ * other protocols). Returns -1 if the packet is too short for the header.
+ */
+static int
+tcpedit_find_l3(tcpedit_t *tcpedit,
+                const struct pcap_pkthdr *pkthdr,
+                u_char *packet,
+                int l2proto,
+                int dst_dlt,
+                int l2len,
+                ipv4_hdr_t **ip_hdr,
+                ipv6_hdr_t **ip6_hdr)
+{
+    *ip_hdr = NULL;
+    *ip6_hdr = NULL;
+
+    /* does packet have an IP header?  if so set our pointer to it */
+    if (l2proto == htons(ETHERTYPE_IP)) {
+        u_char *p;
+
+        if (pkthdr->caplen < l2len + sizeof(**ip_hdr)) {
+            tcpedit_seterr(tcpedit,
+                           "Packet length %d is too short to contain a layer IP header for DLT 0x%04x",
+                           (int)pkthdr->caplen,
+                           dst_dlt);
+            return -1;
+        }
+
+        *ip_hdr = (ipv4_hdr_t *)tcpedit_dlt_l3data(tcpedit->dlt_ctx, dst_dlt, packet, (int)pkthdr->caplen);
+        if (*ip_hdr == NULL) {
+            return -1;
+        }
+
+        p = get_layer4_v4(*ip_hdr, (u_char *)*ip_hdr + pkthdr->caplen - l2len);
+        if (!p) {
+            tcpedit_seterr(tcpedit,
+                           "Packet length %d is too short to contain a layer %d byte IP header for DLT 0x%04x",
+                           (int)pkthdr->caplen,
+                           (*ip_hdr)->ip_hl << 2,
+                           dst_dlt);
+            return -1;
+        }
+
+        dbgx(3, "Packet has an IPv4 header: 0x%p...", *ip_hdr);
+    } else if (l2proto == htons(ETHERTYPE_IP6)) {
+        u_char *p;
+
+        if (pkthdr->caplen < l2len + sizeof(**ip6_hdr)) {
+            tcpedit_seterr(tcpedit,
+                           "Packet length %d is too short to contain a layer IPv6 header for DLT 0x%04x",
+                           (int)pkthdr->caplen,
+                           dst_dlt);
+            return -1;
+        }
+
+        *ip6_hdr = (ipv6_hdr_t *)tcpedit_dlt_l3data(tcpedit->dlt_ctx, dst_dlt, packet, (int)pkthdr->caplen);
+        if (*ip6_hdr == NULL) {
+            return -1;
+        }
+
+        p = get_layer4_v6(*ip6_hdr, (u_char *)*ip6_hdr + pkthdr->caplen - l2len);
+        if (!p) {
+            tcpedit_seterr(tcpedit,
+                           "Packet length %d is too short to contain an IPv6 header for DLT 0x%04x",
+                           (int)pkthdr->caplen,
+                           dst_dlt);
+            return -1;
+        }
+
+        dbgx(3, "Packet has an IPv6 header: 0x%p...", *ip6_hdr);
+    } else {
+        dbgx(3, "Packet isn't IPv4 or IPv6: 0x%04x", l2proto);
+    }
+
+    return 0;
+}
+
+/**
  * \brief Edit the given packet
  *
  * Process a given packet and edit the pkthdr/pktdata structures
@@ -50,10 +128,9 @@
 int
 tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr, u_char **pktdata, tcpr_dir_t direction)
 {
-    bool fuzz_once = tcpedit->fuzz_seed != 0;
-    ipv4_hdr_t *ip_hdr;
-    ipv6_hdr_t *ip6_hdr;
-    arp_hdr_t *arp_hdr;
+    ipv4_hdr_t *ip_hdr = NULL;
+    ipv6_hdr_t *ip6_hdr = NULL;
+    arp_hdr_t *arp_hdr = NULL;
     int l2len, l2proto, retval;
     int dst_dlt, src_dlt, pktlen, lendiff;
     uint32_t ipflags, tclass;
@@ -90,10 +167,6 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr, u_char **pktdata
     src_dlt = tcpedit_dlt_src(tcpedit->dlt_ctx);
 
     needtorecalc = 0;
-again:
-    ip_hdr = NULL;
-    ip6_hdr = NULL;
-    arp_hdr = NULL;
     retval = 0;
     ipflags = 0;
     /* not everything has a L3 header, so check for errors.  returns proto in network byte order */
@@ -123,63 +196,8 @@ again:
 
     dbgx(2, "dst_dlt = %04x\tsrc_dlt = %04x\tproto = %04x\tl2len = %d", dst_dlt, src_dlt, ntohs(l2proto), l2len);
 
-    /* does packet have an IP header?  if so set our pointer to it */
-    if (l2proto == htons(ETHERTYPE_IP)) {
-        u_char *p;
-
-        if ((*pkthdr)->caplen < l2len + sizeof(*ip_hdr)) {
-            tcpedit_seterr(tcpedit,
-                           "Packet length %d is too short to contain a layer IP header for DLT 0x%04x",
-                           pktlen,
-                           dst_dlt);
-            return TCPEDIT_SOFT_ERROR;
-        }
-
-        ip_hdr = (ipv4_hdr_t *)tcpedit_dlt_l3data(tcpedit->dlt_ctx, dst_dlt, packet, (int)(*pkthdr)->caplen);
-        if (ip_hdr == NULL)
-            return TCPEDIT_SOFT_ERROR;
-
-        p = get_layer4_v4(ip_hdr, (u_char *)ip_hdr + (*pkthdr)->caplen - l2len);
-        if (!p) {
-            tcpedit_seterr(tcpedit,
-                           "Packet length %d is too short to contain a layer %d byte IP header for DLT 0x%04x",
-                           pktlen,
-                           ip_hdr->ip_hl << 2,
-                           dst_dlt);
-            return TCPEDIT_SOFT_ERROR;
-        }
-
-        dbgx(3, "Packet has an IPv4 header: 0x%p...", ip_hdr);
-    } else if (l2proto == htons(ETHERTYPE_IP6)) {
-        u_char *p;
-
-        if ((*pkthdr)->caplen < l2len + sizeof(*ip6_hdr)) {
-            tcpedit_seterr(tcpedit,
-                           "Packet length %d is too short to contain a layer IPv6 header for DLT 0x%04x",
-                           pktlen,
-                           dst_dlt);
-            return TCPEDIT_SOFT_ERROR;
-        }
-
-        ip6_hdr = (ipv6_hdr_t *)tcpedit_dlt_l3data(tcpedit->dlt_ctx, dst_dlt, packet, (int)(*pkthdr)->caplen);
-        if (ip6_hdr == NULL)
-            return TCPEDIT_SOFT_ERROR;
-
-        p = get_layer4_v6(ip6_hdr, (u_char *)ip6_hdr + (*pkthdr)->caplen - l2len);
-        if (!p) {
-            tcpedit_seterr(tcpedit,
-                           "Packet length %d is too short to contain an IPv6 header for DLT 0x%04x",
-                           pktlen,
-                           dst_dlt);
-            return TCPEDIT_SOFT_ERROR;
-        }
-
-        dbgx(3, "Packet has an IPv6 header: 0x%p...", ip6_hdr);
-    } else {
-        dbgx(3, "Packet isn't IPv4 or IPv6: 0x%04x", l2proto);
-        /* non-IP packets have a NULL ip_hdr struct */
-        ip_hdr = NULL;
-        ip6_hdr = NULL;
+    if (tcpedit_find_l3(tcpedit, *pkthdr, packet, l2proto, dst_dlt, l2len, &ip_hdr, &ip6_hdr) < 0) {
+        return TCPEDIT_SOFT_ERROR;
     }
 
     /* The following edits only apply for IPv4 */
@@ -251,14 +269,32 @@ again:
             rewrite_ipv6_tcp_sequence(tcpedit, &ip6_hdr, (int)(*pkthdr)->caplen - l2len);
     }
 
-    if (fuzz_once) {
-        fuzz_once = false;
+    if (tcpedit->fuzz_seed != 0) {
+        /*
+         * On FORCE_ALIGN builds ip_hdr/ip6_hdr point at a working copy, which
+         * fuzzing() refills from the packet: put the edits back first.
+         */
+        if (tcpedit_dlt_merge_l3data(tcpedit->dlt_ctx,
+                                     dst_dlt,
+                                     packet,
+                                     (int)(*pkthdr)->caplen,
+                                     (u_char *)ip_hdr,
+                                     (u_char *)ip6_hdr) == NULL) {
+            return TCPEDIT_ERROR;
+        }
+
         retval = fuzzing(tcpedit, *pkthdr, pktdata);
         if (retval < 0) {
             return TCPEDIT_ERROR;
         }
         needtorecalc += retval;
-        goto again;
+
+        /* fuzzing() can shorten the packet: find the headers again, but don't repeat the edits */
+        packet = *pktdata;
+        l2len = tcpedit_dlt_l2len(tcpedit->dlt_ctx, dst_dlt, packet, (int)(*pkthdr)->caplen);
+        if (l2len == -1 || tcpedit_find_l3(tcpedit, *pkthdr, packet, l2proto, dst_dlt, l2len, &ip_hdr, &ip6_hdr) < 0) {
+            return TCPEDIT_SOFT_ERROR;
+        }
     }
 
     /* (Un)truncate or MTU truncate packet? */
