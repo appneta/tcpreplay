@@ -261,6 +261,7 @@ tcpprep: auto_router auto_bridge auto_client auto_server auto_first cidr regex \
 tcprewrite: rewrite_portmap rewrite_range_portmap rewrite_endpoint \
 	rewrite_pnat rewrite_ipv6_prefix_remap rewrite_portmap_invalid rewrite_portmap_big \
 	rewrite_jnpr_ether \
+	rewrite_cidr_invalid \
 	rewrite_trunc rewrite_pad rewrite_seed rewrite_mac \
 	rewrite_layer2 rewrite_config rewrite_skip rewrite_dltuser rewrite_dlthdlc rewrite_dltraw rewrite_nanosec \
 	rewrite_vlan802.1ad rewrite_vlandel rewrite_efcs \
@@ -704,6 +705,33 @@ rewrite_jnpr_ether:
 	else \
 	    $(PRINTF) "\t\t%s\n" "FAILED"; od -Ax -tx1 -v test.$@1 >> test.log; false; \
 	fi
+
+# a negative IPv4 prefix length was accepted and matched every address (#1186)
+rewrite_cidr_invalid:
+	$(PRINTF) "%s" "[tcprewrite] Invalid CIDR test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Invalid CIDR test: " >> test.log
+	rc=0; \
+	for args in "-N 10.0.0.0/-5:172.16.0.0/24" "--srcipmap=10.0.0.0/24:172.16.0.0/-1" \
+	            "-N 10.0.0.0/33:172.16.0.0/24"; do \
+	    $(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 $$args > test.$@.out 2>&1; \
+	    status=$$?; \
+	    cat test.$@.out >> test.log; \
+	    if [ $$status -eq 0 ] || { [ $$status -ge 128 ] && [ $$status -ne 255 ]; } || \
+	       grep -q "Sanitizer\|runtime error" test.$@.out; then \
+	        $(PRINTF) "%s\n" "ERROR: tcprewrite $$args exited $$status" >> test.log; rc=1; \
+	    fi; \
+	done; \
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 -N 10.0.0.0/0:172.16.0.0/0 > test.$@.out 2>&1; \
+	status=$$?; cat test.$@.out >> test.log; \
+	if [ $$status -ne 0 ] || grep -q "Sanitizer\|runtime error" test.$@.out; then \
+	    $(PRINTF) "%s\n" "ERROR: tcprewrite -N 10.0.0.0/0 exited $$status" >> test.log; rc=1; \
+	fi; \
+	$(TCPPREP) -i $(TEST_PCAP) -o test.$@.cache -c 10.0.0.0/-5 > test.$@.out 2>&1; \
+	status=$$?; cat test.$@.out >> test.log; \
+	if [ $$status -eq 0 ] || { [ $$status -ge 128 ] && [ $$status -ne 255 ]; }; then \
+	    $(PRINTF) "%s\n" "ERROR: tcpprep -c 10.0.0.0/-5 exited $$status" >> test.log; rc=1; \
+	fi; \
+	if [ $$rc -eq 0 ] ; then $(PRINTF) "\t\t\t%s\n" "OK"; else $(PRINTF) "\t\t\t%s\n" "FAILED"; false; fi
 
 # each port in a range is a list node: 4 full ranges is 262,148 nodes
 rewrite_portmap_big:
