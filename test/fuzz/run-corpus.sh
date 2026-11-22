@@ -26,7 +26,7 @@ export ASAN_OPTIONS
 
 srcdir="${srcdir:-.}"
 
-for target in fuzz_services fuzz_pcap fuzz_fragroute; do
+for target in fuzz_services fuzz_pcap fuzz_fragroute fuzz_tcpedit; do
     [ -x "./$target" ] || continue          # fragroute is optional
     name=$(echo "$target" | sed 's/^fuzz_//')
     dir="$srcdir/corpus/$name"

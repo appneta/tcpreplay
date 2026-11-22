@@ -352,6 +352,12 @@ rewrite_packets(tcpedit_t *tcpedit_ctx, pcap_t *pin, pcap_dumper_t *pout)
 
         /* Dual nic processing? */
         if (options.cachedata != NULL) {
+            /* check_cache() has no bound of its own: past the cache it reads off the end */
+            if (packetnum > options.cache_packets)
+                errx(-1,
+                     "Exceeded number of packets in cache file: it covers " COUNTER_SPEC " packets",
+                     options.cache_packets);
+
             cache_result = check_cache(options.cachedata, packetnum);
         }
 
