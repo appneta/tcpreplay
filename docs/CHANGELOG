@@ -20,7 +20,7 @@
       and bound the 802.11 SNAP header read (#1191)
     - tcpreplay: bound the IPv6 hop-by-hop read in flow statistics (#1184)
     - tcpreplay: AF_XDP sends only the captured bytes of a truncated packet - it read
-      past the capture and transmitted heap contents (#1192)
+      past the capture and transmitted heap contents (#1196)
     - tcprewrite: stop when the capture has more packets than the --cachefile covers (#1184)
     - tcpreplay-edit: decode each capture with its own DLT, not the output interface's;
       --dualfile captures must now share a DLT to be edited (#1193)
@@ -28,6 +28,7 @@
       tests, and --enable-asan with clang (#1178)
     - test: fix the big-endian rewrite_dltraw and rewrite_nanosec golden files (#1194)
     - test: add an ASan-checked regression test for each fix above
+    - ci: run the test workflow on pull requests (#1198)
     - ci: add a musl (Alpine) build and test workflow (#1172)
     - fuzz: add an OSS-Fuzz target for tcpedit (#1173)
 
