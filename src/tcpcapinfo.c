@@ -197,7 +197,7 @@ main(int argc, char *argv[])
         printf("snaplen     = %" PRIu32 "\n", pcap_fh.snaplen);
         printf("linktype    = 0x%08" PRIx32 "\n", pcap_fh.linktype);
 
-        if (pcap_fh.version_major != 2 && pcap_fh.version_minor != 4) {
+        if (pcap_fh.version_major != 2 || pcap_fh.version_minor != 4) {
             printf("Sorry, we only support file format version 2.4\n");
             close(fd);
             continue;
@@ -310,6 +310,20 @@ main(int argc, char *argv[])
 
             /* print the frame checksum */
             printf("\t%x\t", do_checksum_math((u_int16_t *)buf, maxread));
+
+            /* skip what didn't fit in buf so the next read is a record header */
+            if (!caplentoobig && (size_t)caplen > (size_t)maxread) {
+                size_t left = (size_t)caplen - (size_t)maxread;
+
+                while (left > 0 && (ret = read(fd, &buf, min(left, sizeof(buf)))) > 0) {
+                    left -= (size_t)ret;
+                }
+                if (left > 0) {
+                    printf("\nFile truncated!  Unable to jump to next packet.\n");
+                    close(fd);
+                    break;
+                }
+            }
 
             /* print the Note */
             if (!backwards && !caplentoobig)
