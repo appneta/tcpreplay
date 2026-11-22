@@ -11,6 +11,7 @@ hexdump = @test_hexdump@
 ENABLE_DEBUG = @debug_run_time_flag@
 TCPPREP=../src/tcpprep --no-arg-comment
 TCPREPLAY=../src/tcpreplay
+TCPREPLAY_EDIT=../src/tcpreplay-edit
 TCPREWRITE=../src/tcprewrite
 TCPBRIDGE=../src/tcpbridge
 # verifies packets a replay reported as sent actually reached the wire (#1094)
@@ -18,6 +19,10 @@ WIRECHECK=$(srcdir)/wirecheck.sh
 # replays against dummy interfaces at MTUs the default test NIC never
 # exercises, to catch #1079/#1090-class bugs (#1097)
 MTU_MATRIX=$(srcdir)/mtu_matrix.sh
+# tcpreplay-edit must decode a capture with its own DLT, not the NIC's
+REPLAY_EDIT_DLT=$(srcdir)/replay_edit_dlt.sh
+# replays a truncated capture over AF_XDP on a throwaway veth pair
+XDP_TRUNCATED=$(srcdir)/xdp_truncated.sh
 
 TEST_PCAP=$(srcdir)/test.pcap
 # frames sized either side of TX_RING's old 4096-byte truncation point (#1079)
@@ -26,6 +31,13 @@ TEST_JUMBO_PCAP=$(srcdir)/test_jumbo.pcap
 # IP-only capture for the fragroute tests: fragroute aborts on the first
 # non-IP packet, and test.pcap contains plenty of those.
 FRAGROUTE_PCAP=$(srcdir)/test_fragroute.pcap
+# single packets cut off inside the L4 header, snaplen == packet length so the
+# replay buffer ends where the packet does (an overrun shows up under ASan)
+TRUNC_L4_PCAPS = test_trunc_ipv6_plen.pcap test_trunc_udp_frag.pcap \
+		test_trunc_tcp.pcap test_trunc_ipv6_udp.pcap
+# edits that grow a packet: snaplen == captured length, so libpcap's buffer
+# ends where the packet does and writing past it shows up under ASan
+GROW_PCAPS = test_grow_pad.pcap test_grow_vlan.pcap test_maxsnaplen_raw.pcap
 
 if COMPILE_FRAGROUTE
 FRAGROUTE_TESTS = fragroute_valid fragroute_negsize fragroute_badrules
@@ -33,9 +45,9 @@ else
 FRAGROUTE_TESTS =
 endif
 
-EXTRA_DIST = wirecheck.sh mtu_matrix.sh mtu_check_jumbo.py gen_jumbo_pcap.py \
+EXTRA_DIST = wirecheck.sh mtu_matrix.sh mtu_check_jumbo.py gen_jumbo_pcap.py replay_edit_dlt.sh xdp_truncated.sh \
 		replay_order.sh order_compare.py \
-		test.pcap test_jumbo.pcap test_nano.pcap test_fragroute.pcap \
+		test.pcap test_jumbo.pcap test_nano.pcap test_fragroute.pcap test_sll_ipv4.pcap test_arp_sll.pcap test_fuzz_short_payload.pcap test_ipv6_remap.pcap test_xdp_truncated.pcap test_flow_hbh_trunc.pcap $(TRUNC_L4_PCAPS) $(GROW_PCAPS) \
 		test.auto_bridge test.auto_client test.auto_router \
 		test.auto_server test.auto_first test.cidr test.comment test.port test.mac \
 		test.cidr_reverse test.mac_reverse test.regex_reverse \
@@ -43,7 +55,7 @@ EXTRA_DIST = wirecheck.sh mtu_matrix.sh mtu_check_jumbo.py gen_jumbo_pcap.py \
 		test.include_dest test.prep_config \
 		test.primary test.regex test.secondary \
 		test.rewrite_seed test.rewrite_portmap test.rewrite_endpoint \
-		test.rewrite_pnat test.rewrite_pad test.rewrite_trunc \
+		test.rewrite_pnat test.rewrite_ipv6_prefix_remap test.rewrite_pad test.rewrite_trunc \
 		test.rewrite_mac test.rewrite_layer2 test.rewrite_config \
 		test.rewrite_skip test.rewrite_dltuser test.rewrite_dlthdlc test.rewrite_dltraw test.rewrite_nanosec \
 		test.rewrite_vlan802.1ad test.rewrite_vlandel test.rewrite_efcs \
@@ -55,7 +67,7 @@ EXTRA_DIST = wirecheck.sh mtu_matrix.sh mtu_check_jumbo.py gen_jumbo_pcap.py \
 		test.rewrite_fixlen_pad test.rewrite_fixlen_trunc test.rewrite_fixlen_del \
 		test.replay_unique_ip test.replay_include test.replay_exclude \
 		test2.rewrite_seed test2.rewrite_portmap test2.rewrite_endpoint \
-		test2.rewrite_pnat test2.rewrite_pad test2.rewrite_trunc \
+		test2.rewrite_pnat test2.rewrite_ipv6_prefix_remap test2.rewrite_pad test2.rewrite_trunc \
 		test2.rewrite_mac test2.rewrite_layer2 test2.rewrite_config \
 		test2.rewrite_skip test2.rewrite_dltuser test2.rewrite_dlthdlc test2.rewrite_dltraw test2.rewrite_nanosec \
 		test2.rewrite_vlan802.1ad test2.rewrite_vlandel test2.rewrite_efcs \
@@ -122,6 +134,8 @@ standard_bigendian:
 		-e 10.10.0.1:10.10.0.2 -c test.auto_router
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_pnat \
 		-N 96.17.211.0/24:172.16.0.0/24
+	$(TCPREWRITE) -i $(srcdir)/test_ipv6_remap.pcap -o test.rewrite_ipv6_prefix_remap \
+		--srcipmap="[2001:db8:8000::/33]:[2001:dbff::/33]"
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_pad -F pad
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_trunc -F trunc
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_mac \
@@ -181,6 +195,8 @@ standard_littleendian:
 		-e 10.10.0.1:10.10.0.2 -c test.auto_router
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_pnat \
 		-N 96.17.211.0/24:172.16.0.0/24
+	$(TCPREWRITE) -i $(srcdir)/test_ipv6_remap.pcap -o test2.rewrite_ipv6_prefix_remap \
+		--srcipmap="[2001:db8:8000::/33]:[2001:dbff::/33]"
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_pad -F pad
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_trunc -F trunc
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_mac \
@@ -236,19 +252,21 @@ tcpprep: auto_router auto_bridge auto_client auto_server auto_first cidr regex \
 	include_packets include_source include_dest
 
 tcprewrite: rewrite_portmap rewrite_range_portmap rewrite_endpoint \
-	rewrite_pnat rewrite_trunc rewrite_pad rewrite_seed rewrite_mac \
+	rewrite_pnat rewrite_ipv6_prefix_remap rewrite_portmap_invalid rewrite_portmap_big \
+	rewrite_trunc rewrite_pad rewrite_seed rewrite_mac \
 	rewrite_layer2 rewrite_config rewrite_skip rewrite_dltuser rewrite_dlthdlc rewrite_dltraw rewrite_nanosec \
 	rewrite_vlan802.1ad rewrite_vlandel rewrite_efcs \
 	rewrite_1ttl rewrite_2ttl rewrite_3ttl rewrite_1ttl-hdrfix rewrite_2ttl-hdrfix rewrite_3ttl-hdrfix \
 	rewrite_tos rewrite_mtutrunc rewrite_enet_subsmac rewrite_mac_seed \
 	rewrite_mac_seed_keep rewrite_l7fuzzing rewrite_sequence rewrite_fixcsum \
 	rewrite_fixlen_pad rewrite_fixlen_trunc rewrite_fixlen_del \
-	$(FRAGROUTE_TESTS)
+	rewrite_dltuser_maxsnaplen rewrite_cache_short rewrite_seed_arp_dlt $(FRAGROUTE_TESTS)
 
 tcpreplay: replay_wirecheck replay_mtu_jumbo replay_mtu_small replay_ordering replay_basic replay_nano_timer replay_cache \
 	replay_pps replay_rate replay_top \
 	replay_config replay_multi replay_pps_multi replay_precache \
-	replay_stats replay_dualfile replay_maxsleep replay_include replay_exclude replay_unique_ip
+	replay_stats replay_dualfile replay_maxsleep replay_include replay_exclude replay_unique_ip \
+	replay_edit_trunc_l4 replay_edit_grow replay_xdp_truncated replay_flow_hbh_trunc replay_edit_fuzz_short replay_edit_dlt
 
 # re-run the whole tcpreplay test group with the io_uring injection method;
 # not part of 'make test' - CI invokes it explicitly on Linux builds
@@ -468,6 +486,28 @@ replay_wirecheck:
 # #1097: the default test NIC never exercises an MTU that reproduces #1079
 # (jumbo) or #1090 (small, the IPv6 minimum). Linux-only (dummy interfaces);
 # skips cleanly elsewhere.
+# AF_XDP must send only the captured bytes of a truncated packet. Linux with
+# libxdp only; skips cleanly elsewhere.
+replay_xdp_truncated:
+	$(PRINTF) "%s" "[tcpreplay] AF_XDP truncated capture test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay] AF_XDP truncated capture test: " >> test.log
+	$(XDP_TRUNCATED) test.log $(TCPREPLAY) $(ENABLE_DEBUG); \
+	rc=$$?; \
+	if [ $$rc -eq 0 ] ; then $(PRINTF) "\t%s\n" "OK"; \
+	elif [ $$rc -eq 77 ] ; then $(PRINTF) "\t%s\n" "SKIPPED"; \
+	else $(PRINTF) "\t%s\n" "FAILED"; tail -n 20 test.log >&2; false; fi
+
+# a Linux SLL capture replayed onto an Ethernet NIC with --dlt=enet and --ttl
+# must go out converted and edited; skips without tcpdump
+replay_edit_dlt:
+	$(PRINTF) "%s" "[tcpreplay-edit] Capture DLT test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay-edit] Capture DLT test: " >> test.log
+	$(REPLAY_EDIT_DLT) $(nic1) test.log $(TCPREPLAY_EDIT) $(ENABLE_DEBUG); \
+	rc=$$?; \
+	if [ $$rc -eq 0 ] ; then $(PRINTF) "\t\t%s\n" "OK"; \
+	elif [ $$rc -eq 77 ] ; then $(PRINTF) "\t\t%s\n" "SKIPPED"; \
+	else $(PRINTF) "\t\t%s\n" "FAILED"; tail -n 20 test.log >&2; false; fi
+
 replay_mtu_jumbo:
 	$(PRINTF) "%s" "[tcpreplay] Jumbo MTU (9000) test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Jumbo MTU (9000) test: " >> test.log
@@ -516,6 +556,47 @@ replay_cache:
 	$(TCPREPLAY) $(ENABLE_DEBUG) -c $(srcdir)/test.cidr -i $(nic1) -I $(nic2) -t $(TEST_PCAP) >> test.log 2>&1; \
 	if [ $$? -eq 0 ] ; then $(PRINTF) "\t\t\t%s\n" "OK"; else $(PRINTF) "\t\t\t%s\n" "FAILED"; false; fi
 
+
+# TCP packets with a 1-byte payload, snaplen == packet length: every packet is
+# fuzzed, and any mutation that runs past the payload shows up under ASan
+replay_edit_fuzz_short:
+	$(PRINTF) "%s" "[tcpreplay-edit] Fuzz short payload test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay-edit] Fuzz short payload test: " >> test.log
+	$(TCPREPLAY_EDIT) $(ENABLE_DEBUG) -i $(nic1) --fuzz-seed=7 --fuzz-factor=1 \
+		$(srcdir)/test_fuzz_short_payload.pcap >> test.log 2>&1; \
+	if [ $$? -eq 0 ] ; then $(PRINTF) "\t%s\n" "OK"; else $(PRINTF) "\t%s\n" "FAILED"; false; fi
+
+# IPv6 hop-by-hop next header with nothing captured after the IPv6 header,
+# snaplen == packet length; flow stats are on by default
+replay_flow_hbh_trunc:
+	$(PRINTF) "%s" "[tcpreplay] Truncated IPv6 hop-by-hop flow test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay] Truncated IPv6 hop-by-hop flow test: " >> test.log
+	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -t $(srcdir)/test_flow_hbh_trunc.pcap >> test.log 2>&1; \
+	if [ $$? -eq 0 ] ; then $(PRINTF) "\t%s\n" "OK"; else $(PRINTF) "\t%s\n" "FAILED"; false; fi
+
+replay_edit_trunc_l4:
+	$(PRINTF) "%s" "[tcpreplay-edit] Truncated L4 header test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay-edit] Truncated L4 header test: " >> test.log
+	rc=0; \
+	for t in "--fixcsum test_trunc_ipv6_plen.pcap" "--mtu-trunc test_trunc_udp_frag.pcap" \
+		 "--tcp-sequence=5 test_trunc_tcp.pcap" "--seed=42 test_trunc_ipv6_udp.pcap"; do \
+	    set -- $$t; \
+	    $(PRINTF) "%s\n" "--- $$t" >> test.log; \
+	    $(TCPREPLAY_EDIT) $(ENABLE_DEBUG) -i $(nic1) $$1 $(srcdir)/$$2 >> test.log 2>&1 || rc=1; \
+	done; \
+	if [ $$rc -eq 0 ] ; then $(PRINTF) "\t%s\n" "OK"; else $(PRINTF) "\t%s\n" "FAILED"; false; fi
+
+replay_edit_grow:
+	$(PRINTF) "%s" "[tcpreplay-edit] Packet growing edits test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay-edit] Packet growing edits test: " >> test.log
+	rc=0; \
+	$(TCPREPLAY_EDIT) $(ENABLE_DEBUG) -i $(nic1) --fixlen=pad \
+		$(srcdir)/test_grow_pad.pcap >> test.log 2>&1 || rc=1; \
+	$(TCPREPLAY_EDIT) $(ENABLE_DEBUG) -i $(nic1) --preload-pcap --fixlen=pad \
+		$(srcdir)/test_grow_pad.pcap >> test.log 2>&1 || rc=1; \
+	$(TCPREPLAY_EDIT) $(ENABLE_DEBUG) -i $(nic1) --enet-vlan=add --enet-vlan-tag=5 \
+		$(srcdir)/test_grow_vlan.pcap >> test.log 2>&1 || rc=1; \
+	if [ $$rc -eq 0 ] ; then $(PRINTF) "\t%s\n" "OK"; else $(PRINTF) "\t%s\n" "FAILED"; false; fi
 
 replay_accurate:
 	$(PRINTF) "%s" "[tcpreplay] Accurate test: "
@@ -569,6 +650,43 @@ rewrite_endpoint:
 	else \
 	    $(PRINTF) "\t\t\t%s\n" "FAILED"; od -Ax -tx1 -v test.$@1 >> test.log; false; \
 	fi
+
+# an IPv6 prefix that isn't a multiple of 8 bits splits a byte between the
+# network and the original address
+rewrite_ipv6_prefix_remap:
+	$(PRINTF) "%s" "[tcprewrite] IPv6 /33 remap test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] IPv6 /33 remap test: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(srcdir)/test_ipv6_remap.pcap -o test.$@1 \
+	    --srcipmap="[2001:db8:8000::/33]:[2001:dbff::/33]" >> test.log 2>&1
+	if diff $(srcdir)/test$(VARIANT).$@ test.$@1 >> test.log 2>&1; then \
+	    $(PRINTF) "\t\t\t%s\n" "OK"; \
+	else \
+	    $(PRINTF) "\t\t\t%s\n" "FAILED"; od -Ax -tx1 -v test.$@1 >> test.log; false; \
+	fi
+
+# a malformed portmap must be refused, not crash (signals are exit 128-254)
+rewrite_portmap_invalid:
+	$(PRINTF) "%s" "[tcprewrite] Invalid portmap test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Invalid portmap test: " >> test.log
+	rc=0; \
+	for spec in "-:80" "+:80" "80:81,+:82"; do \
+	    $(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 -r "$$spec" > test.$@.out 2>&1; \
+	    status=$$?; \
+	    cat test.$@.out >> test.log; \
+	    if [ $$status -eq 0 ] || { [ $$status -ge 128 ] && [ $$status -ne 255 ]; } || \
+	       grep -q "Sanitizer\|runtime error" test.$@.out; then \
+	        $(PRINTF) "%s\n" "ERROR: portmap '$$spec' exited $$status" >> test.log; rc=1; \
+	    fi; \
+	done; \
+	if [ $$rc -eq 0 ] ; then $(PRINTF) "\t\t\t%s\n" "OK"; else $(PRINTF) "\t\t\t%s\n" "FAILED"; false; fi
+
+# each port in a range is a list node: 4 full ranges is 262,148 nodes
+rewrite_portmap_big:
+	$(PRINTF) "%s" "[tcprewrite] Large portmap test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Large portmap test: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 \
+	    -r 0-65535:1,0-65535:2,0-65535:3,0-65535:4 >> test.log 2>&1; \
+	if [ $$? -eq 0 ] ; then $(PRINTF) "\t\t\t%s\n" "OK"; else $(PRINTF) "\t\t\t%s\n" "FAILED"; false; fi
 
 rewrite_pnat:
 	$(PRINTF) "%s" "[tcprewrite] Pseudo NAT test: "
@@ -836,6 +954,50 @@ rewrite_tos:
 	else \
 	    $(PRINTF) "\t\t\t\t%s\n" "FAILED"; od -Ax -tx1 -v test.$@1 >> test.log; false; \
 	fi
+
+# --seed on an ARP request converted from Linux SLL (16-byte L2) to Ethernet
+# (14-byte L2): both IPs must change, and the ARP header and both MACs must not.
+# Checked field by field because --seed's output depends on host byte order.
+rewrite_seed_arp_dlt:
+	$(PRINTF) "%s" "[tcprewrite] ARP seed with DLT conversion test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] ARP seed with DLT conversion test: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(srcdir)/test_arp_sll.pcap -o test.$@1 --dlt=enet \
+	    --enet-dmac=00:01:02:03:04:05 --enet-smac=00:01:02:03:04:06 --seed=7 >> test.log 2>&1
+	f=test.$@1; \
+	hdr=`od -An -tx1 -j 54 -N 8 $$f | tr -d ' \n'`; smac=`od -An -tx1 -j 62 -N 6 $$f | tr -d ' \n'`; \
+	sip=`od -An -tx1 -j 68 -N 4 $$f | tr -d ' \n'`; tmac=`od -An -tx1 -j 72 -N 6 $$f | tr -d ' \n'`; \
+	tip=`od -An -tx1 -j 78 -N 4 $$f | tr -d ' \n'`; \
+	$(PRINTF) "%s\n" "arp=$$hdr smac=$$smac sip=$$sip tmac=$$tmac tip=$$tip" >> test.log; \
+	if [ "$$hdr" = 0001080006040001 ] && [ "$$smac" = 0011223344aa ] && [ "$$tmac" = aabbccddeeff ] && \
+	   [ "$$sip" != 0a010101 ] && [ "$$tip" != 0a020202 ]; then \
+	    $(PRINTF) "\t%s\n" "OK"; \
+	else \
+	    $(PRINTF) "\t%s\n" "FAILED"; false; \
+	fi
+
+# a cache for 20 packets used on a 259-packet capture must be refused, not
+# read past (signals are exit 128-254)
+rewrite_cache_short:
+	$(PRINTF) "%s" "[tcprewrite] Short cache file test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Short cache file test: " >> test.log
+	$(TCPPREP) -a client -i $(FRAGROUTE_PCAP) -o test.$@.cache >> test.log 2>&1
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 -c test.$@.cache >> test.log 2>&1; \
+	status=$$?; \
+	if [ $$status -ne 0 ] && [ $$status -lt 128 -o $$status -eq 255 ]; then \
+	    $(PRINTF) "\t\t\t%s\n" "OK"; \
+	else \
+	    $(PRINTF) "\t\t\t%s\n" "FAILED"; false; \
+	fi
+
+# a MAX_SNAPLEN frame given a 255-byte user L2 header would exceed MAXPACKET;
+# it must be refused (written unedited), not overflow the buffer
+rewrite_dltuser_maxsnaplen:
+	$(PRINTF) "%s" "[tcprewrite] DLT User max length test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] DLT User max length test: " >> test.log
+	dlink=aa; i=1; while [ $$i -lt 255 ]; do dlink="$$dlink,aa"; i=`expr $$i + 1`; done; \
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(srcdir)/test_maxsnaplen_raw.pcap -o test.$@1 \
+		--dlt=user --user-dlt=147 --user-dlink=$$dlink >> test.log 2>&1; \
+	if [ $$? -eq 0 ] ; then $(PRINTF) "\t\t%s\n" "OK"; else $(PRINTF) "\t\t%s\n" "FAILED"; false; fi
 
 rewrite_mtutrunc:
 	$(PRINTF) "%s" "[tcprewrite] MTU Truncate test: "
