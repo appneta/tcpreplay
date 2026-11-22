@@ -399,6 +399,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     packet_cache_t **prev_packet = NULL;
 #if defined TCPREPLAY && defined TCPREPLAY_EDIT
     struct pcap_pkthdr *pkthdr_ptr;
+    u_char *edit_buf = (u_char *)safe_malloc(MAXPACKET);
 #endif
     int datalink = options->file_cache[idx].dlt;
     COUNTER skip_length = 0;
@@ -488,6 +489,13 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 
 #if defined TCPREPLAY && defined TCPREPLAY_EDIT
         pkthdr_ptr = &pkthdr;
+        /*
+         * tcpedit edits in place and can grow the packet up to MAXPACKET, but
+         * pktdata is libpcap's buffer or a preload cache entry sized to the
+         * capture, so hand it a copy.
+         */
+        memcpy(edit_buf, pktdata, pkthdr.caplen);
+        pktdata = edit_buf;
         if (tcpedit_packet(tcpedit, &pkthdr_ptr, &pktdata, sp->cache_dir) == -1) {
             errx(-1, "Error editing packet #" COUNTER_SPEC ": %s", packetnum, tcpedit_geterr(tcpedit));
         }
@@ -604,8 +612,12 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             if (ctx->abort) {
                 break;
             }
-            /* The first packet is already in memory */
-            prepare_first_element_of_batch(ctx, &packetnum, pktdata, pkthdr.len);
+            /*
+             * The first packet is already in memory. pktlen, not pkthdr.len:
+             * only caplen bytes were captured, and anything beyond them would
+             * be copied out of the heap and onto the wire.
+             */
+            prepare_first_element_of_batch(ctx, &packetnum, pktdata, (u_int32_t)pktlen);
             /* Read more packets and prepare batch */
             prepare_remaining_elements_of_batch(ctx, &packetnum, &read_next_packet, pcap, &idx, pkthdr, prev_packet);
         }
@@ -695,6 +707,9 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 
     TIMESPEC_SET(&stats->end_time, &now);
 
+#if defined TCPREPLAY && defined TCPREPLAY_EDIT
+    safe_free(edit_buf);
+#endif
     increment_iteration(ctx);
 }
 
@@ -721,6 +736,9 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     packet_cache_t *cached_packet1 = NULL, *cached_packet2 = NULL;
     packet_cache_t **prev_packet1 = NULL, **prev_packet2 = NULL;
     struct pcap_pkthdr *pkthdr_ptr;
+#if defined TCPREPLAY && defined TCPREPLAY_EDIT
+    u_char *edit_buf = (u_char *)safe_malloc(MAXPACKET);
+#endif
     int datalink;
     COUNTER end_us;
     COUNTER skip_length = 0;
@@ -822,6 +840,9 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         dbgx(2, "packet " COUNTER_SPEC " caplen " COUNTER_SPEC, packetnum, pktlen);
 
 #if defined TCPREPLAY && defined TCPREPLAY_EDIT
+        /* edit a MAXPACKET copy, as in send_packets() */
+        memcpy(edit_buf, pktdata, pkthdr_ptr->caplen);
+        pktdata = edit_buf;
         if (tcpedit_packet(tcpedit, &pkthdr_ptr, &pktdata, sp->cache_dir) == -1) {
             errx(-1, "Error editing packet #" COUNTER_SPEC ": %s", packetnum, tcpedit_geterr(tcpedit));
         }
@@ -1001,6 +1022,9 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 
     TIMESPEC_SET(&stats->end_time, &now);
 
+#if defined TCPREPLAY && defined TCPREPLAY_EDIT
+    safe_free(edit_buf);
+#endif
     increment_iteration(ctx);
 }
 
@@ -1481,11 +1505,17 @@ prepare_remaining_elements_of_batch(tcpreplay_t *ctx,
     unsigned int pckt_count = 1;
     while (!ctx->abort && (pckt_count < sp->batch_size) &&
            (pktdata = get_next_packet(ctx->options, pcap, &pkthdr, *idx, prev_packet)) != NULL) {
-        fill_umem_with_data_and_set_xdp_desc(sp, sp->tx_idx + pckt_count, *packetnum, pktdata, pkthdr.len);
+        /* as in send_packets(): never send more than was captured */
+        u_int32_t len = ctx->options->use_pkthdr_len ? pkthdr.len : pkthdr.caplen;
+
+        if (len > pkthdr.caplen)
+            len = pkthdr.caplen;
+
+        fill_umem_with_data_and_set_xdp_desc(sp, sp->tx_idx + pckt_count, *packetnum, pktdata, len);
         ++pckt_count;
         ++*packetnum;
-        stats->bytes_sent += pkthdr.len;
-        sp->bytes_sent += pkthdr.len;
+        stats->bytes_sent += len;
+        sp->bytes_sent += len;
         stats->pkts_sent++;
         if (ctx->options->flow_stats && !preload) {
             update_flow_stats(ctx, ctx->options->cache_packets ? sp : NULL, &pkthdr, pktdata, datalink, *packetnum);
