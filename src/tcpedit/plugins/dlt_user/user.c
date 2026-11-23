@@ -179,8 +179,12 @@ dlt_user_parse_opts(tcpeditdlt_t *ctx)
         config->dlt = ctx->decoder->dlt;
     }
 
-    /* --user-dlink */
-    if (HAVE_OPT(USER_DLINK)) {
+    if (!HAVE_OPT(USER_DLINK)) {
+        tcpedit_seterr(ctx->tcpedit, "%s", "DLT_USER0 requires --user-dlink");
+        return TCPEDIT_ERROR;
+    }
+
+    {
         int ct = STACKCT_OPT(USER_DLINK);
         char **list = (char **)STACKLST_OPT(USER_DLINK);
         int first = 1;
@@ -238,6 +242,11 @@ dlt_user_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
     config = plugin->config;
     if (plugin->config_size < sizeof(*config))
         return TCPEDIT_ERROR;
+
+    if (config->length <= 0 || config->length > USER_L2MAXLEN) {
+        tcpedit_seterr(ctx->tcpedit, "Invalid user datalink length: %d", config->length);
+        return TCPEDIT_ERROR;
+    }
 
     if (pktlen < ctx->l2len) {
         tcpedit_seterr(ctx->tcpedit, "Packet length %d is less than L2 length %d", pktlen, ctx->l2len);

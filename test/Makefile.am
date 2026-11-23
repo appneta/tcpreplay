@@ -274,7 +274,7 @@ tcprewrite: rewrite_portmap rewrite_range_portmap rewrite_endpoint \
 	rewrite_tos rewrite_mtutrunc rewrite_enet_subsmac rewrite_mac_seed \
 	rewrite_mac_seed_keep rewrite_l7fuzzing rewrite_sequence rewrite_fixcsum \
 	rewrite_fixlen_pad rewrite_fixlen_trunc rewrite_fixlen_del \
-	rewrite_dltuser_maxsnaplen rewrite_cache_short rewrite_seed_arp_dlt $(FRAGROUTE_TESTS)
+	rewrite_dltuser_maxsnaplen rewrite_dltuser_nolink rewrite_cache_short rewrite_seed_arp_dlt $(FRAGROUTE_TESTS)
 
 tcpreplay: replay_wirecheck replay_mtu_jumbo replay_mtu_small replay_ordering replay_basic replay_nano_timer replay_cache \
 	replay_pps replay_rate replay_top \
@@ -1136,6 +1136,14 @@ rewrite_dltuser_maxsnaplen:
 	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(srcdir)/test_maxsnaplen_raw.pcap -o test.$@1 \
 		--dlt=user --user-dlt=147 --user-dlink=$$dlink >> test.log 2>&1; \
 	if [ $$? -eq 0 ] ; then $(PRINTF) "\t\t%s\n" "OK"; else $(PRINTF) "\t\t%s\n" "FAILED"; false; fi
+
+# --dlt=user without --user-dlink must be refused with a fatal error (exit 255),
+# not crash or write before the packet buffer
+rewrite_dltuser_nolink:
+	$(PRINTF) "%s" "[tcprewrite] DLT User without header test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] DLT User without header test: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 --dlt=user >> test.log 2>&1; \
+	if [ $$? -eq 255 ] ; then $(PRINTF) "\t%s\n" "OK"; else $(PRINTF) "\t%s\n" "FAILED"; false; fi
 
 rewrite_mtutrunc:
 	$(PRINTF) "%s" "[tcprewrite] MTU Truncate test: "
