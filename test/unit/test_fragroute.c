@@ -74,6 +74,20 @@ static const uint8_t ip4_len0[] = {
         /* payload */
         0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41};
 
+/* Ethernet + IPv4 header with ihl 8 (32 bytes, NOP options) but ip_len 20, UDP,
+ * plus a short payload: ip_len is smaller than the header it sits in. */
+static const uint8_t ip4_short_len[] = {
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x02, 0x00, 0x00, 0x00, 0x00, 0x01, 0x08, 0x00,
+        /* IPv4: ihl 8, ip_len 20, UDP, TTL 1 */
+        0x48, 0x00, 0x00, 0x14, 0x00, 0x01, 0x00, 0x00, 0x01, 0x11, 0x00, 0x00,
+        0x0a, 0x00, 0x00, 0x01, 0x0a, 0x00, 0x00, 0x02,
+        /* options: NOP x 12 */
+        0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+        /* UDP: sport 1234, dport 5678, length 18 */
+        0x04, 0xd2, 0x16, 0x2e, 0x00, 0x12, 0x00, 0x00,
+        /* payload */
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41};
+
 /*
  * Build an Ethernet + IPv6 + UDP frame of total length len, padded with
  * payload. ip6_plen is set to cover everything after the IPv6 header so the
@@ -197,7 +211,7 @@ main(void)
     uint8_t *big;
     size_t biglen = MAX_SNAPLEN; /* 256K; ip6_opt grows it past MAXPACKET */
 
-    tap_plan(3);
+    tap_plan(4);
 
     /* Finding 1: ip_opt lsrr on an ip_len==0 packet */
     tap_ok(run_rules_on_packet("ip_opt lsrr 4 10.0.0.9\n", ip4_len0, sizeof(ip4_len0)),
@@ -206,6 +220,10 @@ main(void)
     /* Finding 2: ip_chaff opt on an ip_len==0 packet */
     tap_ok(run_rules_on_packet("ip_chaff opt\n", ip4_len0, sizeof(ip4_len0)),
            "ip_chaff opt on ip_len==0 packet does not fault");
+
+    /* ip_opt lsrr on a packet whose ip_len is smaller than its header */
+    tap_ok(run_rules_on_packet("ip_opt lsrr 4 10.0.0.9\n", ip4_short_len, sizeof(ip4_short_len)),
+           "ip_opt lsrr on ip_len < ip_hl packet does not fault");
 
     /* Finding 3: a near-MAX_SNAPLEN packet an inserted header grows past
      * MAXPACKET must not overflow the caller's getfragment() buffer */
