@@ -228,3 +228,7 @@ Yegor Yefremov <GitHub @yegorich>
 
 Arthur Chan <GitHub @arthurscchan>
     - fuzz: OSS-Fuzz target for tcpedit packet editing and portmap parsing (#1173)
+
+shootduck <GitHub @shootduck>
+    - tcpedit: reported heap buffer underflow write in dlt_user_encode() when --dlt=user
+      is used without --user-dlink (GHSA-qqfw-8w7m-fmxx)
