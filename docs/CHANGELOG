@@ -1,3 +1,20 @@
+11/22/2026 Version 4.6.4
+    - tcpedit: require --user-dlink with --dlt=user; without it the encoder wrote the
+      packet tail before the packet buffer (GHSA-qqfw-8w7m-fmxx)
+    - common: set the L2 length for Juniper frames with JUNIPER_FLAG_NO_L2; tcpprep, flow
+      statistics and --unique-ip read the IP header through a wild pointer or overflowed
+      the packet buffer (GHSA-vvvj-v4jv-xqg8, #1223)
+    - tcpedit: apply each edit once with --fuzz-seed; non-idempotent edits such as
+      --ttl=+5 and --tcp-sequence ran twice (#1221)
+    - common: reject negative IPv4 prefix lengths, and don't shift by 32 for /0 (#1216)
+    - tcpcapinfo: reject any pcap version but 2.4, and skip packets over 64 KB (#1217)
+    - tcpedit: decode the Juniper extension length on big-endian hosts (#1218)
+    - tcpedit: don't access ARP addresses through misaligned pointers (#1219)
+    - common: skip the 4-byte address-family header of DLT_NULL captures, which were never
+      recognised as IP by flow statistics, tcpprep and --unique-ip (#1220)
+    - test: cover ip_opt on a packet whose ip_len is below its header (GHSA-9x76-w8p7-m2m7,
+      fixed in 4.6.3 by #1179) (#1225)
+
 11/22/2026 Version 4.6.3
     - fragroute: fix a signed overflow formatting the delay in the print module
       (OSS-Fuzz 578324118, #1175)
