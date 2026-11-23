@@ -375,6 +375,7 @@ get_l2len_protocol(const u_char *pktdata,
             else if ((pktdata[ip_hdr_offset] >> 4) == 6)
                 *protocol = ETHERTYPE_IP6;
 
+            *l2len = ip_hdr_offset;
             return 0;
         }
 
