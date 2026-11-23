@@ -234,3 +234,7 @@ shootduck <GitHub @shootduck>
       is used without --user-dlink (GHSA-qqfw-8w7m-fmxx)
     - common: reported heap buffer overflow in get_ipv4() on Juniper frames with
       JUNIPER_FLAG_NO_L2 (GHSA-vvvj-v4jv-xqg8)
+
+kta1kri <GitHub @kta1kri>
+    - fragroute: reported negative-size memmove in ip_add_option() reached from the ip_opt
+      and ip_chaff modules on a crafted pcap (GHSA-9x76-w8p7-m2m7)
