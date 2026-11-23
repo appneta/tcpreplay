@@ -138,7 +138,7 @@ build from source if you need the newest features or a security fix.
 
 ```console
 $ tcpreplay --version
-tcpreplay version: 4.6.1 ...
+tcpreplay version: 4.6.4 ...
 ```
 
 You're ready for the [Quickstart](quickstart.md).
@@ -150,7 +150,7 @@ Official release tarballs are published on the
 with a detached PGP signature (`.asc`) alongside each archive:
 
 ```console
-$ gpg --verify tcpreplay-4.6.1.tar.xz.asc tcpreplay-4.6.1.tar.xz
+$ gpg --verify tcpreplay-4.6.4.tar.xz.asc tcpreplay-4.6.4.tar.xz
 ```
 
 A *Good signature* from the Tcpreplay release key confirms the archive is
